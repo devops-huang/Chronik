@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>辰箓 · 天机阁</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.cn">
+<link rel="preconnect" href="https://fonts.gstatic.cn" crossorigin>
+<link href="https://fonts.googleapis.cn/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Serif+TC:wght@400;500;600;700&family=ZCOOL+XiaoWei&family=Cinzel:wght@500;700&family=Cormorant+Garamond:wght@400;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  /* —— Hero：纵向发光带 + 顶部金色雾 + 角卦象 + 主标题巨大毛笔 —— */
+  .hero{
+    position:relative; height:420px; overflow:hidden;
+    border-bottom:1px solid var(--line);
+  }
+  #heroBg{ position:absolute; inset:0; width:100%; height:100%; }
+  .hero-vignette{
+    position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(60% 70% at 50% 50%, transparent 40%, rgba(6,8,16,.4) 80%, rgba(6,8,16,.85) 100%),
+      linear-gradient(180deg, rgba(6,8,16,.25), transparent 30%, transparent 70%, rgba(6,8,16,.6));
+  }
+  .hero-text{
+    position:relative; z-index:5; height:100%;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    text-align:center; pointer-events:none; padding:24px;
+  }
+  .hero-tag-cn{
+    font-family: var(--font-serif);
+    color: var(--jade);
+    font-size: 12px; letter-spacing: 8px;
+    margin-bottom: 18px;
+    display:flex; align-items:center; gap:14px;
+    text-shadow: 0 0 20px rgba(95,208,192,.35);
+  }
+  .hero-tag-cn::before, .hero-tag-cn::after{
+    content:""; display:inline-block; width:60px; height:1px;
+    background: linear-gradient(90deg, transparent, var(--jade), transparent);
+  }
+  .hero-title{
+    font-family: var(--font-cn);
+    font-size: 110px; line-height: 1; color: var(--gold-bright);
+    letter-spacing: 24px; margin-left: 24px;
+    text-shadow:
+      0 0 40px rgba(232,201,138,.5),
+      0 0 90px rgba(232,201,138,.22);
+    filter: drop-shadow(0 0 14px rgba(232,201,138,.3));
+    animation: titleGlow 6s ease-in-out infinite;
+  }
+  @keyframes titleGlow { 0%,100% { filter: drop-shadow(0 0 14px rgba(232,201,138,.3)); } 50% { filter: drop-shadow(0 0 30px rgba(232,201,138,.6)); } }
+  .hero-title-en{
+    font-family: var(--font-en);
+    font-size: 13px; letter-spacing: 11px; color: var(--ink-dim);
+    margin-top: 18px; text-transform: uppercase;
+  }
+  .hero-date{
+    font-family: var(--font-serif);
+    color: var(--gold); font-size: 13px; letter-spacing: 4px; margin-top: 14px;
+    text-shadow: 0 0 16px rgba(232,201,138,.25);
+  }
+  @media (max-width:900px){ .hero-title{ font-size: 64px; letter-spacing: 14px; margin-left:14px; } }
+
+  /* 角卦象（hero 内部，独立于 hero 也能看到） */
+  .h-corner{
+    position:absolute; font-family:var(--font-serif);
+    font-size:48px; color:rgba(232,201,138,.45);
+    text-shadow: 0 0 24px rgba(232,201,138,.3);
+    pointer-events:none; z-index:3;
+    animation: rot 30s linear infinite;
+  }
+  .h-corner.tl{ top:18px; left:30px; }
+  .h-corner.tr{ top:18px; right:30px; animation-direction:reverse; }
+  .h-corner.bl{ bottom:18px; left:30px; animation-direction:reverse; color:rgba(127,200,232,.45); text-shadow:0 0 24px rgba(127,200,232,.3); }
+  .h-corner.br{ bottom:18px; right:30px; color:rgba(127,200,232,.45); text-shadow:0 0 24px rgba(127,200,232,.3); }
+  @keyframes rot { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+  /* 容器 + 四区块布局（核心区 → 中部 → 底排3 → 底部） */
+  .container{ max-width:1240px; margin:0 auto; padding:24px 22px 60px }
+  .dash-core{ display:grid; grid-template-columns:1.15fr 1fr; gap:22px; margin-bottom:26px }
+  .dash-mid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-bottom:26px; align-items:start }
+  .dash-row3{ display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-bottom:26px }
+  .dash-foot{ display:grid; grid-template-columns:1fr 1fr; gap:22px }
+
+  /* 字体变量（繁体宋体优先，更典雅） + 卡片标题统一 */
+  :root{
+    --font-cn: "Ma Shan Zheng", "STKaiti", "KaiTi", "楷体", serif;
+    --font-serif: "Noto Serif TC", "Noto Serif SC", "Songti SC", "STSong", serif;
+    --font-en: "Cinzel", "Cormorant Garamond", serif;
+  }
+  .card h3{ display:flex; align-items:center; gap:9px; font-family:var(--font-serif); font-weight:600;
+    font-size:17px; letter-spacing:2px; color:var(--gold-bright); margin:0 0 14px }
+  .card h3 .ic{ font-size:16px; filter:drop-shadow(0 0 8px rgba(232,201,138,.3)) }
+
+  /* 万年历 */
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px }
+  .cal-head .ml{ font-size:18px; color:var(--gold-bright); font-family:var(--font-cn); letter-spacing:2px }
+  .cal-head button{ padding:5px 12px }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px }
+  .cal-grid .wd{ text-align:center; font-size:11px; color:var(--ink-dim); padding:4px 0; font-family:var(--font-serif); letter-spacing:1px }
+  .cal-cell{ aspect-ratio:1/1; border:1px solid var(--line); border-radius:9px; padding:5px 6px; cursor:pointer;
+    background:#0f1420; display:flex; flex-direction:column; justify-content:space-between; transition:.14s; overflow:hidden }
+  .cal-cell:hover{ border-color:var(--jade) }
+  .cal-cell.out{ opacity:.4 }
+  .cal-cell.today{ border-color:var(--gold); box-shadow:0 0 14px rgba(232,201,138,.25); background:rgba(232,201,138,.06) }
+  .cal-cell .d{ font-size:13px; color:var(--ink) }
+  .cal-cell .gz{ font-size:10px; color:var(--jade); font-family:var(--font-serif); }
+  .cal-cell .lu{ font-size:9px; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .day-detail{ margin-top:12px; padding:12px; border-radius:10px; background:#0f1420; border:1px solid var(--line); font-size:12.5px; min-height:54px }
+  .day-detail b{ color:var(--gold-bright) }
+
+  /* 今日运势 */
+  .fortune-big{ display:flex; align-items:baseline; gap:10px }
+  .fortune-big .gz{ font-size:34px; color:var(--gold-bright); font-family:var(--font-cn) }
+  .fortune-big .el{ font-size:13px; color:var(--jade) }
+  .rel-tag{ display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; margin:8px 0;
+    background:rgba(95,208,192,.14); color:var(--jade); border:1px solid rgba(95,208,192,.3) }
+  .yi-ji{ display:flex; gap:14px; margin-top:10px; font-size:12.5px }
+  .yi-ji .col{ flex:1 }
+  .yi-ji .lab{ color:var(--ink-dim); font-size:11px; margin-bottom:4px }
+  .yi-ji .v{ color:var(--ink) }
+  .fortune-head{ margin-top:6px; color:var(--ink); font-size:13px; line-height:1.7 }
+
+  /* 天气（含定位） */
+  .wx-loc{ font-size:12px; color:var(--jade); letter-spacing:1px; font-family:var(--font-serif); margin-left:auto }
+  .wx-reloc{ display:flex; align-items:center; gap:10px; margin:-4px 0 10px }
+  .wx-reloc button{ padding:4px 11px; font-size:12px }
+  .wx-top{ display:flex; align-items:center; gap:16px }
+  .wx-icon{ font-size:42px; line-height:1; filter:drop-shadow(0 0 12px rgba(232,201,138,.3)) }
+  .wx-temp{ font-size:46px; color:var(--gold-bright); font-family:var(--font-cn); line-height:1 }
+  .wx-meta{ font-size:12.5px; color:var(--ink-dim); line-height:1.9 }
+  .wx-meta b{ color:var(--ink) }
+  #wxChart{ width:100%; height:160px; margin-top:8px }
+
+  /* 阴阳建议 */
+  .advice-card{ display:flex; flex-direction:column; overflow:hidden }
+  .advice-card h3{ flex:0 0 auto }
+  .advice-card .advice{ flex:0 0 auto; margin:0; padding:0 }
+  .advice li{ margin:8px 0; color:var(--ink); font-size:13.5px; line-height:1.78; list-style:none; padding-left:26px; position:relative }
+  .advice li::before{ content:"☯︎"; position:absolute; left:2px; top:0.12em; color:var(--jade); font-size:14px; line-height:1; font-variant-emoji:text }
+  /* 建议卡底部道系山水（撑满 advice-card 剩余空间） */
+  .advice-art{
+    margin-top:18px; position:relative;
+    flex:1 1 0; min-height:240px;
+    border-top:1px solid var(--line);
+    background:radial-gradient(120% 100% at 50% 100%, rgba(127,200,232,.06), transparent 70%);
+    overflow:hidden; border-radius:0 0 var(--r,12px) var(--r,12px);
+  }
+  .advice-art svg{ position:absolute; inset:0; width:100%; height:100%; display:block }
+
+  /* 十二時辰吉凶 */
+  .hours-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px }
+  .hours-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px }
+  .hour-cell{ border:1px solid var(--line); border-radius:10px; padding:9px 6px 8px; text-align:center; background:#0f1420; transition:.14s }
+  .hour-cell:hover{ border-color:var(--gold) }
+  .hour-cell .hb{ font-family:var(--font-cn); font-size:19px; color:var(--ink); line-height:1 }
+  .hour-cell .hr{ font-size:10px; color:var(--ink-dim); margin:3px 0 6px; letter-spacing:.5px }
+  .hour-cell .dot{ width:9px; height:9px; border-radius:50%; display:block; margin:0 auto 5px }
+  .hour-cell.lv1 .dot{ background:var(--jade); box-shadow:0 0 8px rgba(95,208,192,.6) }
+  .hour-cell.lv2 .dot{ background:var(--gold); box-shadow:0 0 8px rgba(232,201,138,.5) }
+  .hour-cell.lv3 .dot{ background:var(--red); box-shadow:0 0 8px rgba(216,115,95,.5) }
+  .hour-cell .tip{ font-size:10.5px; color:var(--ink-dim); line-height:1.45 }
+  .hour-legend{ display:flex; gap:14px; margin-top:11px; font-size:11px; color:var(--ink-dim); flex-wrap:wrap }
+  .hour-legend span{ display:flex; align-items:center; gap:5px }
+  .hour-legend i{ width:8px; height:8px; border-radius:50%; display:inline-block }
+
+  /* 今日靈籤 */
+  .omen-card{ display:flex; flex-direction:column }
+  .omen-box{ text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center; min-height:180px }
+  .omen-level{ font-family:var(--font-cn); font-size:24px; margin-bottom:2px }
+  .omen-level.lv1{ color:var(--jade) } .omen-level.lv2{ color:var(--gold-bright) } .omen-level.lv3{ color:var(--red) }
+  .omen-title{ font-family:var(--font-serif); font-size:13px; color:var(--ink-dim); letter-spacing:2px; margin-bottom:10px }
+  .omen-poem{ font-family:var(--font-serif); color:var(--gold-bright); font-size:15px; line-height:2.15; letter-spacing:4px; margin:4px 0 12px }
+  .omen-desc{ font-size:12.5px; color:var(--ink); line-height:1.85; font-family:var(--font-serif) }
+  .omen-actions{ margin-top:14px }
+  .omen-actions button{ padding:8px 22px; font-family:var(--font-serif); letter-spacing:3px; font-size:13px }
+
+  /* 最近 / CTA */
+  .recent{ display:flex; flex-wrap:wrap; gap:10px }
+  .recent .item{ padding:9px 13px; border:1px solid var(--line); border-radius:10px; cursor:pointer; background:#0f1420; transition:.14s }
+  .recent .item:hover{ border-color:var(--gold); color:var(--gold-bright) }
+  .recent .item .p{ font-size:13px; font-family:var(--font-cn); color:var(--gold-bright) }
+  .recent .item .t{ font-size:10.5px; color:var(--ink-dim) }
+  .cta{ display:flex; gap:12px; margin-top:6px; flex-wrap:wrap }
+  .cta a{ flex:1; min-width:160px; text-align:center; padding:13px; border-radius:12px;
+    background:linear-gradient(135deg,rgba(232,201,138,.14),rgba(95,208,192,.1)); border:1px solid var(--line);
+    color:var(--gold-bright); font-size:14px; letter-spacing:1px; font-family:var(--font-serif); }
+  .cta a:hover{ border-color:var(--gold) }
+  .loading{ color:var(--ink-dim); font-size:13px; padding:20px; text-align:center }
+
+  @media(max-width:980px){
+    .dash-core,.dash-mid,.dash-row3,.dash-foot{ grid-template-columns:1fr !important; gap:18px !important }
+    .container{ padding:24px 16px 48px }
+    .advice-art{ min-height:200px }
+  }
+  @media(max-width:760px){
+    .dash-core,.dash-mid,.dash-row3,.dash-foot{ grid-template-columns:1fr !important; gap:16px !important; margin-bottom:18px !important }
+    .container{ padding:22px 14px 56px }
+    .hours-grid{ gap:6px }
+    .hour-cell{ padding:7px 4px 6px }
+    .hour-cell .hb{ font-size:17px }
+    .hero{ height:auto; min-height:320px; padding:28px 0 }
+    .advice-art{ min-height:170px }
+    /* 万年历：移动端放大字，保证每个日期字清晰（农历保持单行省略，避免撑爆单元格） */
+    .cal-grid{ gap:4px }
+    .cal-cell{ padding:7px 4px; border-radius:8px }
+    .cal-cell .d{ font-size:16px }
+    .cal-cell .gz{ font-size:11px }
+    .cal-cell .lu{ font-size:10px; line-height:1.3 }
+    /* 阴阳建议太极不压字（移动端同样加宽缩进） */
+    .advice li{ padding-left:26px; font-size:13.5px }
+    .advice li::before{ left:2px }
+  }
+  @media(max-width:420px){
+    .hours-grid{ grid-template-columns:repeat(3,1fr) }
+    .advice-art{ min-height:150px }
+    .cal-cell .d{ font-size:15px }
+    .cal-cell .gz{ font-size:10px }
+    .cal-cell .lu{ font-size:9px }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand" onclick="location.href='/index.html'">
+    <div class="seal">箓</div>
+    <div><div class="cn">辰箓</div><div class="en">Chen Lu · Destiny</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="/index.html" class="on">天机阁</a>
+    <a href="/studio.html">推演阁</a>
+  </div>
+  <div class="user-menu">
+    <div class="avatar" id="avatar">辰</div>
+    <span id="uname" style="color:var(--ink-dim);font-size:13px"></span>
+    <button id="btnLogout" style="padding:6px 12px">退出</button>
+  </div>
+</nav>
+
+<section class="hero">
+  <canvas id="heroBg"></canvas>
+  <div class="hero-vignette"></div>
+  <span class="h-corner tl">☰</span>
+  <span class="h-corner tr">☱</span>
+  <span class="h-corner bl">☶</span>
+  <span class="h-corner br">☷</span>
+  <div class="hero-text">
+    <div class="hero-tag-cn">天 机 流 转　乾 坤 交 泰</div>
+    <div class="hero-title">辰箓</div>
+    <div class="hero-title-en">Chen Lu · Hall of Heavenly Secrets</div>
+    <div class="hero-date" id="heroDate">— 天机流转 —</div>
+  </div>
+</section>
+
+<div class="container">
+  <div id="dash" class="loading">正在推演天机…</div>
+</div>
+
+<script src="/index.js"></script>
+</body>
+</html>

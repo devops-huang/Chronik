@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>辰箓 · 推演阁</title>
+<link rel="preconnect" href="https://fonts.googleapis.cn">
+<link rel="preconnect" href="https://fonts.gstatic.cn" crossorigin>
+<link href="https://fonts.googleapis.cn/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Serif+TC:wght@400;500;600;700&family=ZCOOL+XiaoWei&family=Cinzel:wght@500;700&family=Cormorant+Garamond:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/purify.min.js"></script>
+<style>
+  .studio{display:grid;grid-template-columns:330px 1fr 480px;height:calc(100vh - 57px)}
+  .col{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .col-form{border-right:1px solid var(--line);overflow-y:auto;padding:18px}
+  .col-chat{background:var(--bg2)}
+  .col-report{background:var(--panel);border-left:1px solid var(--line)}
+
+  .form-h{font-size:16px;color:var(--gold-bright);letter-spacing:2px;margin:0 0 14px;font-family:var(--font-serif)}
+  .hint code{color:var(--jade)}
+  .geo-hint{font-size:12px;margin:6px 0 0;min-height:16px;line-height:1.5}
+  .geo-hint.ok{color:var(--jade)}
+  .geo-hint.warn{color:var(--red)}
+  .geo-hint.loading{color:var(--ink-dim)}
+
+  .report-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .report-bar .t{font-size:14px;color:var(--gold-bright);letter-spacing:1px}
+  .report-bar .sp{flex:1}
+  .report-bar button{padding:6px 12px;font-size:12.5px}
+  iframe.report{width:100%;flex:1;border:none;background:#0e0b08}
+  .report-ph{color:var(--ink-dim);text-align:center;padding:60px 16px;font-size:13px;line-height:2;flex:1;display:flex;flex-direction:column;justify-content:center}
+  .report-ph .big{font-size:40px;color:var(--line);font-family:var(--font-cn);display:block;margin-bottom:10px}
+
+  /* 全屏 */
+  .col-report.fullscreen{position:fixed;inset:0;z-index:60;width:100vw;height:100vh;border:none;background:var(--panel)}
+  .col-report.fullscreen iframe.report{height:calc(100vh - 49px)}
+
+  /* 聊天 */
+  .chat-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)}
+  .chat-head .t{font-size:14px;color:var(--gold-bright);letter-spacing:1px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+  .dot.ok{background:var(--jade)} .dot.off{background:var(--red)}
+  .chat-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .msg{max-width:90%;padding:11px 14px;border-radius:12px;font-size:13.5px;line-height:1.7;word-break:break-word}
+  .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--gold),#caa765);color:#1a140a;border-bottom-right-radius:3px}
+  .msg.ai{align-self:flex-start;background:#0f1420;border:1px solid var(--line);border-bottom-left-radius:3px}
+  .msg.ai .cursor{display:inline-block;width:7px;height:14px;background:var(--gold);margin-left:2px;vertical-align:-2px;animation:blink 1s steps(2) infinite}
+  /* 推演等待态 */
+  .msg.thinking{align-self:flex-start;background:linear-gradient(90deg,#0f1420,#141a28);
+    border:1px dashed var(--gold);color:var(--gold-bright);
+    font-family:var(--font-serif);letter-spacing:1.5px;
+    display:flex;align-items:center;gap:10px;animation:thinkGlow 1.6s ease-in-out infinite}
+  .msg.thinking .sigil{display:inline-block;width:14px;height:14px;border-radius:50%;
+    border:2px solid var(--gold);border-top-color:transparent;
+    animation:spin .9s linear infinite}
+  .msg.thinking .dots span{animation:pulse 1.4s infinite;opacity:.25;display:inline-block}
+  .msg.thinking .dots span:nth-child(2){animation-delay:.2s}
+  .msg.thinking .dots span:nth-child(3){animation-delay:.4s}
+  .msg.thinking.timeout{border-color:var(--red);color:var(--red);animation:none}
+  .msg.thinking.timeout .sigil{display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+  @keyframes thinkGlow{0%,100%{box-shadow:0 0 0 rgba(232,201,138,0)}50%{box-shadow:0 0 18px rgba(232,201,138,.18)}}
+  /* 聊天区 Markdown 排版（移动端友好） */
+  .msg.ai{font-size:14px;line-height:1.75}
+  .msg.ai > :first-child{margin-top:0}
+  .msg.ai > :last-child{margin-bottom:0}
+  .msg.ai p{margin:7px 0;line-height:1.75}
+  .msg.ai h1,.msg.ai h2,.msg.ai h3,.msg.ai h4{color:var(--gold-bright);line-height:1.4;margin:12px 0 7px;font-weight:600}
+  .msg.ai h1{font-size:17px}
+  .msg.ai h2{font-size:16px}
+  .msg.ai h3{font-size:15px}
+  .msg.ai h4{font-size:14px;opacity:.9}
+  .msg.ai strong{color:var(--gold-bright);font-weight:600}
+  .msg.ai em{color:var(--ink)}
+  .msg.ai a{color:var(--jade);text-decoration:underline;word-break:break-all}
+  .msg.ai ul,.msg.ai ol{padding-left:22px;margin:7px 0}
+  .msg.ai li{margin:4px 0;line-height:1.7}
+  .msg.ai hr{border:none;border-top:1px solid var(--line);margin:10px 0}
+  .msg.ai blockquote{border-left:3px solid var(--jade);margin:8px 0;padding:6px 12px;color:var(--ink-dim);background:rgba(127,200,232,.06);border-radius:0 6px 6px 0}
+  .msg.ai code{background:#0a0d14;padding:1px 5px;border-radius:5px;color:var(--jade);font-size:12.5px;word-break:break-word}
+  .msg.ai pre{background:#0a0d14;border:1px solid var(--line);border-radius:8px;padding:11px;overflow-x:auto;margin:8px 0}
+  .msg.ai pre code{background:none;padding:0;font-size:12.5px;white-space:pre-wrap;word-break:break-word}
+  .msg.ai table{border-collapse:collapse;margin:8px 0;width:100%;font-size:12.5px;display:block;overflow-x:auto}
+  .msg.ai th,.msg.ai td{border:1px solid var(--line);padding:5px 9px;text-align:left;white-space:nowrap}
+  .msg.ai th{background:rgba(232,201,138,.08);color:var(--gold-bright)}
+  .chat-empty{color:var(--ink-dim);font-size:13px;text-align:center;margin:auto;padding:30px;line-height:2}
+  .chat-input{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
+  .chat-input textarea{flex:1;resize:none;height:46px;max-height:140px;background:#0f1420;border:1px solid var(--line);
+    border-radius:9px;color:var(--ink);padding:11px 12px;font-size:14px;line-height:1.5}
+  .recent-list{margin-top:18px}
+  .recent-list .hint{margin-bottom:8px}
+  .recent-list .item{display:flex;justify-content:space-between;gap:8px;padding:8px 11px;border:1px solid var(--line);
+    border-radius:9px;margin-bottom:8px;cursor:pointer;background:#0f1420}
+  .recent-list .item:hover{border-color:var(--gold)}
+  .recent-list .item .p{font-family:var(--font-serif);color:var(--gold-bright);font-size:13px}
+  .recent-list .item .t{font-size:10.5px;color:var(--ink-dim)}
+
+  /* 发送按钮推演中状态 */
+  #btnSend{position:relative;min-width:78px}
+  #btnSend.loading{opacity:.85;cursor:progress}
+  #btnSend .spin{display:none;width:12px;height:12px;border-radius:50%;
+    border:2px solid rgba(26,20,10,.55);border-top-color:#1a140a;
+    animation:spin .8s linear infinite;vertical-align:-2px;margin-right:4px}
+  #btnSend.loading .spin{display:inline-block}
+  #btnSend.loading .lbl::after{content:'推演中'}
+
+  @media(max-width:1100px){
+    .studio{grid-template-columns:300px 1fr}
+    .col-report{display:none}
+    .col-report.fullscreen{display:flex}
+  }
+
+  /* 移动端：三标签切换（推演 / 报告 / 问答） */
+  .m-tabs{display:none}
+  @media(max-width:760px){
+    body{display:flex; flex-direction:column; height:100vh; min-height:100vh; margin:0; overflow:hidden}
+    nav.topnav{flex:0 0 auto; position:relative; top:auto; z-index:auto}
+    .m-tabs{display:flex;flex:0 0 auto;gap:6px;padding:10px 12px;background:var(--panel2);
+      border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+    .m-tabs button{flex:1;padding:9px 0;font-size:14px;letter-spacing:1px;border-radius:9px;
+      border:1px solid var(--line);background:#0f1420;color:var(--ink-dim);font-family:var(--font-serif)}
+    .m-tabs button.on{background:linear-gradient(135deg,var(--gold),#caa765);color:#1a140a;border-color:transparent;font-weight:600}
+    .studio{flex:1 1 0; min-height:0; display:flex; flex-direction:column; height:auto;
+      overflow:hidden; grid-template-columns:none}
+    .col{min-width:0;width:100%;flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+    .col-form{border-right:none;overflow-y:auto;padding:14px}
+    .col-report{border-left:none;overflow:hidden}
+    .col-chat{background:var(--bg2);display:flex;flex-direction:column;min-height:0}
+    .col-chat .chat-body{flex:1 1 0; min-height:0; overflow-y:auto}
+    .col-chat .chat-input{flex:0 0 auto}
+    .col-report iframe.report{flex:1 1 0; min-height:0}
+    /* 非激活面板在移动端隐藏（全屏报告除外） */
+    .col:not(.active):not(.fullscreen){display:none !important}
+    .col.active{display:flex !important}
+    .msg{max-width:92%}
+    .msg.ai{font-size:14.5px}
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand" onclick="location.href='/index.html'">
+    <div class="seal">箓</div>
+    <div><div class="cn">辰箓</div><div class="en">Chen Lu · Destiny</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="/index.html">天机阁</a>
+    <a href="/studio.html" class="on">推演阁</a>
+  </div>
+  <div class="user-menu">
+    <div class="avatar" id="avatar">辰</div>
+    <span id="uname" style="color:var(--ink-dim);font-size:13px"></span>
+    <button id="btnSettings">模型设置</button>
+    <button id="btnLogout" style="padding:6px 12px">退出</button>
+  </div>
+</nav>
+
+<div class="studio">
+  <!-- 移动端标签栏（≤760 显示） -->
+  <div class="m-tabs" id="mTabs">
+    <button data-tab="form" class="on">推演</button>
+    <button data-tab="report">报告</button>
+    <button data-tab="chat">问答</button>
+  </div>
+  <!-- 左：表单 + 历史 -->
+  <div class="col col-form active" data-pane="form">
+    <h2 class="form-h">排出你的命盘</h2>
+    <div class="field">
+      <label>历法</label>
+      <div class="seg" id="calSeg">
+        <button data-cal="solar">阳历</button>
+        <button data-cal="lunar" class="on">农历</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>出生日期</label>
+        <input id="date" type="text" placeholder="1996-10-11" value="1996-10-11"></div>
+      <div class="field"><label>出生时间</label>
+        <input id="time" type="text" placeholder="09:30" value="09:30"></div>
+    </div>
+    <div class="field"><label>性别</label>
+      <div class="seg" id="genderSeg">
+        <button data-g="1" class="on">男</button>
+        <button data-g="2">女</button>
+      </div>
+    </div>
+    <div class="field"><label>出生地（自动真太阳时校正）</label>
+      <input id="location" list="cityList" placeholder="城市名，如 济源市" value="天水">
+      <datalist id="cityList"></datalist>
+      <div class="geo-hint" id="geoHint"></div>
+      <div class="hint">支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
+    </div>
+    <div class="field"><label>运势区间（留空 = 近三年）</label>
+      <div class="row2">
+        <input id="startY" type="text" placeholder="起始年 2025">
+        <input id="endY" type="text" placeholder="结束年 2028">
+      </div>
+    </div>
+    <button class="primary" id="btnSubmit" style="width:100%;padding:11px;font-size:15px">推演命盘 · 生成报告</button>
+    <div class="hint" id="status" style="margin-top:10px"></div>
+
+    <div class="recent-list">
+      <div class="hint">我的命盘历史</div>
+      <div id="recentBox"><div class="hint">暂无记录</div></div>
+    </div>
+  </div>
+
+  <!-- 中：对话 -->
+  <div class="col col-chat" data-pane="chat">
+    <div class="chat-head">
+      <span class="dot off" id="llmDot"></span>
+      <span class="t">命理答疑</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--ink-dim)" id="llmStatus">检测中…</span>
+    </div>
+    <div class="chat-body" id="chatBody">
+      <div class="chat-empty" id="chatEmpty">先在左侧推演命盘，再在这里追问：<br>「今年事业怎么走？」「和 XX 合不合？」「财运何时好转？」</div>
+    </div>
+    <div class="chat-input">
+      <textarea id="chatText" placeholder="先推演命盘，再在此提问…"></textarea>
+      <button class="primary" id="btnSend" disabled><span class="spin"></span><span class="lbl">发送</span></button>
+    </div>
+  </div>
+
+  <!-- 右：报告预览 -->
+  <div class="col col-report" id="reportCol" data-pane="report">
+    <div class="report-bar">
+      <span class="t">命盘报告</span>
+      <span class="sp"></span>
+      <button id="btnFull">⛶ 全屏</button>
+      <button id="btnExport">导出</button>
+      <button id="btnPrint">打印</button>
+    </div>
+    <div class="report-ph" id="reportPlaceholder">
+      <span class="big">命</span>填写左侧信息，推演命盘<br>黑金命盘将在此预览
+    </div>
+    <iframe class="report" id="reportFrame" title="命理报告" style="display:none"></iframe>
+  </div>
+</div>
+
+<!-- 设置抽屉 -->
+<div class="drawer" id="drawer" style="position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:70">
+  <div class="drawer-card" style="position:absolute;right:0;top:0;height:100%;width:380px;max-width:90vw;background:var(--panel2);border-left:1px solid var(--line);padding:22px;overflow-y:auto">
+    <h3 style="margin:0 0 16px;color:var(--gold-bright);font-size:16px;letter-spacing:2px">大模型设置</h3>
+    <div class="field"><label>API Base URL</label>
+      <input id="cfgBase" placeholder="https://api.deepseek.com/v1"></div>
+    <div class="field"><label>API Key</label>
+      <input id="cfgKey" type="password" placeholder="sk-..." autocomplete="off"></div>
+    <div class="field"><label>模型名</label>
+      <input id="cfgModel" placeholder="deepseek-chat"></div>
+    <div class="small hint" id="cfgHint" style="display:none;color:var(--gold-bright);border:1px solid #8a6c3a;border-radius:8px;padding:8px 10px">
+      ✅ 服务端已预置模型密钥，可留空直接对话；填自有 Key 将覆盖。</div>
+    <div class="small hint">Key 仅存本机浏览器 localStorage，请求时透传，服务端不落盘。兼容 DeepSeek/OpenAI/通义/Kimi/智谱/Ollama。</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="primary" id="cfgSave" style="flex:1">保存</button>
+      <button id="cfgClose" style="flex:1">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="/studio.js"></script>
+</body>
+</html>

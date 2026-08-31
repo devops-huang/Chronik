@@ -1,0 +1,25 @@
+{
+  "name": "bazi-system",
+  "version": "1.0.0",
+  "description": "八字命理排盘系统：阳历/农历输入、真太阳时校正、完整命盘报告，附大模型命理答疑窗口",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "smoke": "node tools/smoke.mjs",
+    "vendor": "node tools/vendor.cjs"
+  },
+  "keywords": [
+    "bazi",
+    "八字",
+    "命理",
+    "排盘"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cantian-tymext": "0.0.26",
+    "pg": "8.13.1"
+  }
+}

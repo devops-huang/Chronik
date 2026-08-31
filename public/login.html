@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>辰箓 · 登录 · Hall of Heavenly Secrets</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&family=Cinzel:wght@500;700&family=Cormorant+Garamond:wght@400;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/style.css">
+<style>
+  /* —— 神秘国风页：四角卦象 · 边缘符文 · 星空粒子 —— */
+  html, body { height:100%; overflow-x:hidden; }
+
+  /* 屏四角的旋转卦象 */
+  .corner-trigram {
+    position:fixed; z-index:2; pointer-events:none;
+    font-family: var(--font-serif);
+    font-size:64px; line-height:1; color: rgba(232,201,138,.42);
+    text-shadow: 0 0 30px rgba(232,201,138,.35);
+    animation: trigramRotate 28s linear infinite;
+    user-select: none;
+  }
+  .corner-trigram.tl { top:48px;  left:64px; }
+  .corner-trigram.tr { top:48px;  right:64px;  animation-direction:reverse; }
+  .corner-trigram.bl { bottom:48px; left:64px;  animation-direction:reverse; color:rgba(127,200,232,.42); text-shadow:0 0 30px rgba(127,200,232,.3); }
+  .corner-trigram.br { bottom:48px; right:64px; color:rgba(127,200,232,.42); text-shadow:0 0 30px rgba(127,200,232,.3); }
+  @keyframes trigramRotate { from { transform:rotate(0); } to { transform:rotate(360deg); } }
+  @media (max-width:900px){ .corner-trigram { font-size:42px; } .corner-trigram.tl{left:24px;top:24px;} .corner-trigram.tr{right:24px;top:24px;} .corner-trigram.bl{left:24px;bottom:24px;} .corner-trigram.br{right:24px;bottom:24px;} }
+
+  /* 屏幕左右两侧的符文流（垂直滚动） */
+  .rune-stream {
+    position:fixed; z-index:1; pointer-events:none; user-select:none;
+    font-family: var(--font-serif);
+    color: rgba(127,200,232,.16);
+    font-size: 18px; letter-spacing: 12px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    animation: runeFlow 50s linear infinite;
+  }
+  .rune-stream.left  { top:-30%; left:18px; }
+  .rune-stream.right { top:-50%; right:18px; animation-direction:reverse; animation-duration:65s; color:rgba(232,201,138,.16); }
+  @keyframes runeFlow { from { transform: translateY(0); } to { transform: translateY(50%); } }
+
+  /* 顶部和底部细小装饰线 */
+  .gold-rule {
+    position:fixed; left:50%; transform:translateX(-50%);
+    width: 240px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    z-index:2; pointer-events:none;
+  }
+  .gold-rule.top { top: 32px; }
+  .gold-rule.bottom { bottom: 32px; }
+
+  /* 背景星空 canvas */
+  .bg-canvas { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+  /* 主舞台：内容垂直居中，但中央区域只放"辰箓"+ 副标题，留出空间给 panel */
+  .stage {
+    position:relative; z-index:5;
+    min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding: 80px 24px 80px;
+  }
+
+  /* 品牌头 */
+  .brand {
+    display:flex; flex-direction:column; align-items:center;
+    margin-bottom: 40px;
+    animation: fadeup 1.2s ease both;
+  }
+  .brand .seal-mark {
+    width:64px; height:64px; border-radius:18px;
+    display:grid; place-items:center; margin-bottom:18px;
+    background:linear-gradient(135deg,var(--gold),#b8924f);
+    color:#1a140a; font-family:var(--font-cn); font-size:36px; font-weight:700;
+    box-shadow: 0 0 36px rgba(232,201,138,.45);
+    transform: rotate(-3deg);
+    animation: sealPulse 4s ease-in-out infinite;
+  }
+  @keyframes sealPulse { 0%,100% { box-shadow: 0 0 28px rgba(232,201,138,.4); } 50% { box-shadow: 0 0 60px rgba(232,201,138,.7); } }
+
+  .brand .cn-title {
+    font-family: var(--font-cn);
+    font-size: 96px; line-height: 1; color: var(--gold-bright);
+    letter-spacing: 22px;
+    margin-left: 22px;
+    text-shadow:
+      0 0 36px rgba(232,201,138,.45),
+      0 0 80px rgba(232,201,138,.22);
+    filter: drop-shadow(0 0 14px rgba(232,201,138,.3));
+  }
+  .brand .en-title {
+    font-family: var(--font-en);
+    font-size: 12px; letter-spacing: 9px;
+    color: var(--ink-dim);
+    margin-top: 16px;
+    text-transform: uppercase;
+  }
+  .brand .seal-line {
+    display:flex; align-items:center; gap:14px;
+    color: var(--jade); font-size: 11.5px; letter-spacing: 6px;
+    margin-top: 14px;
+    font-family: var(--font-serif);
+  }
+  .brand .seal-line::before, .brand .seal-line::after {
+    content:""; display:inline-block; width:80px; height:1px;
+    background: linear-gradient(90deg, transparent, var(--jade), transparent);
+  }
+  .brand .sub-line {
+    margin-top: 10px; color: var(--ink-dim); font-size: 12px; letter-spacing: 4px;
+  }
+  @media (max-width:900px){ .brand .cn-title { font-size:64px; letter-spacing:14px; margin-left:14px; } }
+
+  /* 登录 panel */
+  .panel {
+    width: min(380px, 92vw);
+    background: rgba(18,24,38,.82);
+    border:1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 26px;
+    box-shadow:
+      var(--shadow),
+      0 0 80px rgba(232,201,138,.08),
+      inset 0 1px 0 rgba(232,201,138,.08);
+    backdrop-filter: blur(10px);
+    animation: fadeup 1s ease .25s both;
+    position: relative;
+  }
+  .panel::before {
+    content:""; position:absolute; inset:-1px; border-radius:18px; padding:1px;
+    background: linear-gradient(135deg, rgba(232,201,138,.45), rgba(127,200,232,0), rgba(232,201,138,.2));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events:none;
+  }
+  .tabs { display:flex; gap:8px; margin: 6px 0 18px; }
+  .tabs button { flex:1; padding:9px; }
+  .tabs button.on { background:var(--gold); color:#1a140a; border-color:var(--gold); font-weight:700; }
+
+  #status { font-size:12.5px; min-height:18px; margin-top:10px; text-align:center; }
+  .ok { color: var(--jade); } .err { color: var(--red); }
+  .extra { text-align:center; font-size:11.5px; color:var(--ink-dim); margin-top:14px; }
+  .field small { color: var(--ink-dim); font-size: 10.5px; }
+
+  /* 右下角小八卦指引 */
+  .footer-deco {
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    z-index:3; font-family: var(--font-en);
+    color: var(--ink-dim); font-size:10px; letter-spacing:6px;
+  }
+</style>
+</head>
+<body>
+  <canvas id="bg" class="bg-canvas"></canvas>
+  <div class="gold-rule top"></div>
+  <div class="gold-rule bottom"></div>
+
+  <span class="corner-trigram tl">☰</span>
+  <span class="corner-trigram tr">☱</span>
+  <span class="corner-trigram bl">☶</span>
+  <span class="corner-trigram br">☷</span>
+
+  <div class="rune-stream left">乾 坤 震 巽 坎 离 艮 兑 　太极两仪三才四象五行六合七星八卦九宫十方　玄黄宇宙洪荒日月盈昃辰宿列张</div>
+  <div class="rune-stream right">天 机 万 象　紫 微 天 府　太 阴 太 阳　贪 狼 巨 门　武 曲 廉 贞　破 军 七 政　四 煞 天 乙　三 台 六 壬</div>
+
+  <main class="stage">
+    <div class="brand">
+      <div class="seal-mark">箓</div>
+      <div class="cn-title">辰箓</div>
+      <div class="en-title">Chen Lu · Hall of Heavenly Secrets</div>
+      <div class="seal-line">天 机 流 转</div>
+      <div class="sub-line" id="dateLine">— 推演至今 —</div>
+    </div>
+
+    <section class="panel">
+      <div class="tabs">
+        <button id="tabLogin" class="on">登录</button>
+        <button id="tabReg">注册</button>
+      </div>
+
+      <div id="formLogin">
+        <div class="field"><label>用户名</label><input id="lUser" placeholder="请输入用户名" autocomplete="username"></div>
+        <div class="field"><label>密码</label><input id="lPwd" type="password" placeholder="请输入密码" autocomplete="current-password"></div>
+        <button class="primary" id="btnLogin" style="width:100%;padding:11px;font-size:15px">登 录</button>
+      </div>
+
+      <div id="formReg" style="display:none">
+        <div class="field"><label>用户名</label><input id="rUser" placeholder="用于登录（建议字母/数字）" autocomplete="username"></div>
+        <div class="field"><label>昵称</label><input id="rNick" placeholder="展示名，如 天机子"></div>
+        <div class="field"><label>密码 <small>至少 6 位</small></label><input id="rPwd" type="password" placeholder="设置密码" autocomplete="new-password"></div>
+        <button class="primary" id="btnReg" style="width:100%;padding:11px;font-size:15px">注 册</button>
+      </div>
+
+      <div id="status"></div>
+      <div class="extra">登录即代表你已阅读并理解：命理仅供文化娱乐参考，不构成任何专业建议。</div>
+    </section>
+  </main>
+
+  <div class="footer-deco">H A L L &nbsp; O F &nbsp; H E A V E N L Y &nbsp; S E C R E T S</div>
+
+<script src="/login.js"></script>
+</body>
+</html>

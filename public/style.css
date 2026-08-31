@@ -1,0 +1,104 @@
+:root{
+  --bg:#0b0e14; --bg2:#0e131d; --panel:#121826; --panel2:#161d2e; --line:#283149;
+  --gold:#e8c98a; --gold-bright:#f6e3b8; --jade:#5fd0c0; --cyan:#7fc8e8;
+  --ink:#ece5d4; --ink-dim:#9aa3b8; --red:#d8735f; --purple:#9b8cff;
+  --warn:#e0b25a;
+  --shadow:0 10px 40px rgba(0,0,0,.45);
+  --r:14px;
+
+  /* 玄学体系：毛笔字体优先，楷书兜底；英文装饰衬线 */
+  --font-cn:'Ma Shan Zheng','ZCOOL XiaoWei','STKaiti','KaiTi','楷体','Songti SC','SimSun',serif;
+  --font-serif:'Noto Serif SC','Songti SC','SimSun',serif;
+  --font-en:'Cinzel','Cormorant Garamond','Times New Roman',serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:
+  radial-gradient(1200px 700px at 75% -10%, rgba(95,208,192,.10), transparent 60%),
+  radial-gradient(900px 600px at 10% 110%, rgba(155,140,255,.10), transparent 55%),
+  var(--bg);
+  color:var(--ink);
+  font-family:var(--font-serif);
+  font-size:14px;line-height:1.65;
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-cn);font-weight:600;letter-spacing:.04em}
+a{color:var(--gold);text-decoration:none}
+button{font-family:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+  background:#0f1420;color:var(--ink);padding:8px 15px;font-size:13.5px;transition:.16s}
+button:hover{border-color:var(--gold);color:var(--gold-bright)}
+button.primary{background:linear-gradient(135deg,var(--gold),#caa765);color:#1a140a;border:none;font-weight:700}
+button.primary:hover{filter:brightness(1.08)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{width:100%;background:#0f1420;border:1px solid var(--line);border-radius:10px;
+  color:var(--ink);padding:10px 12px;font-size:14px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--jade)}
+code{color:var(--jade);font-family:ui-monospace,monospace;font-size:11px}
+
+/* 顶栏 */
+.topnav{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;
+  background:rgba(11,14,20,.82);backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:12px;cursor:pointer}
+.brand .seal{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--gold),#b8924f);color:#1a140a;font-family:"Songti SC",serif;
+  font-size:18px;font-weight:800;box-shadow:0 0 18px rgba(232,201,138,.35)}
+.brand .cn{font-size:20px;letter-spacing:6px;color:var(--gold-bright)}
+.brand .en{font-size:10px;letter-spacing:3px;color:var(--ink-dim);text-transform:uppercase;margin-top:2px}
+.nav-links{display:flex;gap:8px;align-items:center}
+.nav-links a{padding:7px 14px;border-radius:9px;color:var(--ink-dim);font-size:13.5px}
+.nav-links a:hover,.nav-links a.on{color:var(--gold-bright);background:rgba(232,201,138,.08)}
+.user-menu{display:flex;align-items:center;gap:10px}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--jade),var(--cyan));
+  display:grid;place-items:center;color:#08110f;font-weight:700;font-size:13px}
+
+/* 卡片 */
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+  border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 14px;font-size:16px;color:var(--gold-bright);letter-spacing:2px;
+  display:flex;align-items:center;gap:8px}
+.card h3 .ic{font-size:16px;opacity:.9}
+.hint{font-size:11.5px;color:var(--ink-dim);margin-top:6px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:6px;letter-spacing:1px}
+.seg{display:flex;gap:8px}
+.seg button{flex:1}
+.seg button.on{background:var(--gold);color:#1a140a;border-color:var(--gold);font-weight:700}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* 通用动效 */
+@keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.fadeup{animation:fadeup .5s ease both}
+
+/* 防止移动端浏览器对字体做自动缩放，保证移动端字号与 PC 一致 */
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100% }
+
+/* 平板：工作室仅留 表单 + 对话，报告走全屏 */
+@media(max-width:1100px){
+  .studio{grid-template-columns:300px 1fr}
+  .col-report{display:none}
+  .col-report.fullscreen{display:flex}
+}
+/* 响应式 */
+@media(max-width:900px){
+  .grid-dash{grid-template-columns:1fr !important}
+}
+@media(max-width:760px){
+  .topnav{padding:10px 14px; gap:10px; flex-wrap:wrap}
+  .brand .cn{font-size:17px; letter-spacing:4px}
+  .brand .en{display:none}
+  .nav-links{order:3; width:100%; justify-content:center; gap:4px; padding-top:8px;
+    border-top:1px solid var(--line)}
+  .nav-links a{padding:6px 12px; font-size:13px}
+  .user-menu{gap:8px}
+  .user-menu #uname{display:none}
+  #btnLogout{padding:5px 10px; font-size:12px}
+
+  /* 推演阁移动端：单列纵向堆叠，表单/对话/报告都可用 */
+  .studio{grid-template-columns:1fr !important; height:auto !important}
+  .col{min-height:auto; height:auto}
+  .col-form{border-right:none; border-bottom:1px solid var(--line); padding:16px 14px}
+  .col-chat{min-height:78vh; border-top:1px solid var(--line)}
+  .col-report{display:flex !important; height:85vh; border-left:none; border-top:1px solid var(--line)}
+}
+@media(max-width:420px){
+  .nav-links a{padding:5px 9px; font-size:12px; letter-spacing:1px}
+}
