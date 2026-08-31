@@ -107,6 +107,45 @@ systemctl enable --now chenlu
 
 > ⚠️ 云主机安全组需放行 `TCP 8787`（如阿里云 ECS 控制台 → 安全组 → 入方向）。
 
+### 5. 生产 HTTPS 域名部署（chronik.cn 示例）
+
+本项目已提供 Nginx 反代 + Let's Encrypt 免费证书的一键方案（`infra/` 目录）。
+
+**① 域名解析（在域名注册商控制台，如百度智能云）**
+
+给 `chronik.cn` 添加两条 A 记录指向服务器公网 IP：
+
+| 主机记录 | 类型 | 记录值 | 说明 |
+|---|---|---|---|
+| `@` | A | `服务器公网IP` | 根域名 chronik.cn |
+| `www` | A | `服务器公网IP` | 子域名 www.chronik.cn |
+
+添加后等待 DNS 生效（TTL 通常 10 分钟内），用 `dig +short chronik.cn` 确认已返回服务器 IP。
+
+**② 放行端口（在云服务器安全组，如阿里云 ECS）**
+
+入方向需放行 `TCP 80`（证书校验）与 `TCP 443`（HTTPS）。`8787` 在套了 Nginx 后可不再对外暴露。
+
+**③ 服务器上执行一键脚本**
+
+```bash
+# 以 root 在仓库目录内执行
+bash infra/setup-https.sh
+```
+
+脚本会自动：安装 Nginx + certbot → 写入反代配置 → 申请证书 → 重载 Nginx → 验证。
+
+**④ 验证**
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://chronik.cn/login.html   # 期望 200
+curl -sS -I http://chronik.cn/login.html | grep -i location               # 应 301 到 https
+```
+
+证书由 certbot 的 systemd timer 自动续期，无需人工干预。
+
+> 备注：Nginx 配置见 `infra/nginx/chronik.conf`，已针对 SSE 流式 AI 对话关闭代理缓冲。
+
 ## 说明
 
 命理仅供文化娱乐参考，不构成医疗 / 法律 / 财务 / 投资建议。
