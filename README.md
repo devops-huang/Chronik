@@ -33,26 +33,79 @@ lib/report.js    黑金 HTML 报告
 server.js        HTTP 路由（零内置依赖 + pg）
 ```
 
+## 环境要求
+
+- **Node.js ≥ 22.6**（需原生运行 `.ts` 模块；建议 22 LTS。`npm start` 已带 `--experimental-strip-types`）
+- **PostgreSQL ≥ 14**
+
 ## 本地运行
 
 ```bash
-cd bazi-system
+git clone <本仓库地址> && cd <仓库目录>
 npm install
-# 准备 PostgreSQL，建库建用户，写入环境变量（见 .env.example）
+# 准备 PostgreSQL，建库建用户（详见下方部署）
 export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=chenlu PGPASSWORD=xxx PGDATABASE=chenlu
 export LLM_BASE_URL=... LLM_API_KEY=... LLM_MODEL=qwen3.7-plus
 npm start
+# 打开 http://127.0.0.1:8787
 ```
 
-环境变量优先级：`/api/chart`、`/api/chat` 等由前端传入或回退到服务端 `LLM_*`；`LLM_*` 已写入
-服务端 `.env`，**密钥不进前端、不落盘到前端**。
+环境变量优先级：`/api/chart`、`/api/chat` 等由前端传入或回退到服务端 `LLM_*`；`LLM_*` 仅服务端使用，
+**密钥不进前端、不落盘到前端**。完整变量清单见 `.env.example`。
 
-## 部署（云主机）
+## 部署
 
-`../deploy/deploy.mjs` 自动：安装 Node22 + PostgreSQL 16（官方源）、上传项目、npm install、
-写 `.env`、注册 systemd 服务（开机自启、崩溃重启）。数据库表在首次启动时由 `initSchema()` 自动创建。
+项目目录即服务目录（仓库根含 `server.js` / `lib/` / `public/`），前端为纯静态文件、无需构建。
 
-> 注意：阿里云 ECS 安全组默认拦截 8787，需在**控制台 → 安全组 → 入方向**放行 `TCP 8787` 后方可外网访问。
+### 1. 准备数据库（PostgreSQL）
+
+```bash
+createdb chenlu          # 或登录 psql 后执行 CREATE DATABASE chenlu;
+# 可选：创建专用账号并授权
+```
+
+### 2. 配置环境变量
+
+```bash
+cp .env.example .env
+vim .env                 # 填入 PG* 与 LLM_*（LLM_API_KEY 为服务端密钥，切勿提交）
+```
+
+### 3. 安装依赖并启动
+
+```bash
+npm install
+npm start
+```
+
+> 数据库表在首次启动时由 `initSchema()` **自动创建**，无需手动建表。
+
+### 4.（可选）生产守护 systemd
+
+`/etc/systemd/system/chenlu.service`：
+
+```
+[Unit]
+Description=ChenLu Bazi System
+After=network.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/chenlu
+ExecStart=/usr/bin/node --experimental-strip-types server.js
+EnvironmentFile=/opt/chenlu/.env
+Restart=always
+User=chenlu
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl daemon-reload
+systemctl enable --now chenlu
+```
+
+> ⚠️ 云主机安全组需放行 `TCP 8787`（如阿里云 ECS 控制台 → 安全组 → 入方向）。
 
 ## 说明
 

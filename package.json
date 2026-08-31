@@ -5,9 +5,9 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "smoke": "node tools/smoke.mjs",
+    "start": "node --experimental-strip-types server.js",
+    "dev": "node --watch --experimental-strip-types server.js",
+    "smoke": "node --experimental-strip-types tools/smoke.mjs",
     "vendor": "node tools/vendor.cjs"
   },
   "keywords": [
