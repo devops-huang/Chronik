@@ -19,3 +19,17 @@ sessions/
 # 编辑器 / 系统
 .idea/
 .vscode/
+
+# 生产密钥 / 运行时凭证（绝不提交）
+admin.token
+*.token
+.cfgsecret
+*.cfgsecret
+*.secret
+llm-config.json
+
+# 备份 / 衍生垃圾
+bak/
+*.bak
+*.bak.*
+._*

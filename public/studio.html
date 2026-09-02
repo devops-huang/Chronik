@@ -137,6 +137,38 @@
     .msg{max-width:92%}
     .msg.ai{font-size:14.5px}
   }
+
+  /* 游客注册 / 登录浮层（5.1，自包含样式） */
+  .auth-mask{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
+    background:rgba(8,6,4,.72);backdrop-filter:blur(3px);padding:16px}
+  .auth-mask.show{display:flex}
+  .auth-card{position:relative;width:min(380px,92vw);background:linear-gradient(180deg,#171210,#120e0b);
+    border:1px solid var(--line);border-radius:16px;padding:22px 22px 18px;
+    box-shadow:0 22px 60px rgba(0,0,0,.55)}
+  .auth-x{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--ink-dim);
+    font-size:18px;cursor:pointer;line-height:1;padding:4px}
+  .auth-x:hover{color:var(--gold-bright)}
+  .auth-tabs{display:flex;gap:8px;margin-bottom:16px}
+  .auth-tabs button{flex:1;padding:9px 0;font-size:14px;border-radius:10px;border:1px solid var(--line);
+    background:#0f1420;color:var(--ink-dim);font-family:var(--font-serif);letter-spacing:1px;cursor:pointer}
+  .auth-tabs button.on{background:linear-gradient(135deg,var(--gold),#caa765);color:#1a140a;border-color:transparent;font-weight:600}
+  .auth-card .field{margin-bottom:12px}
+  .auth-card .field label{display:block;font-size:12.5px;color:var(--ink-dim);margin-bottom:6px;letter-spacing:.5px}
+  .auth-card .field input{width:100%;padding:11px 12px;background:#0f1420;border:1px solid var(--line);
+    border-radius:9px;color:var(--ink);font-size:14px;box-sizing:border-box}
+  .auth-card .field input:focus{outline:none;border-color:var(--gold)}
+  .auth-card .field small{color:var(--ink-dim);font-weight:400}
+
+  /* 登录可解锁卖点 */
+  .auth-perks{margin:14px 0 10px;padding:12px 12px 10px;border:1px dashed rgba(232,201,138,.28);border-radius:10px;
+    background:linear-gradient(180deg,rgba(232,201,138,.05),rgba(127,200,232,.04))}
+  .auth-perks .perk{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink);padding:3px 0;letter-spacing:.3px}
+  .auth-perks .perk .perk-ic{width:22px;height:22px;display:inline-grid;place-items:center;border-radius:6px;
+    background:rgba(232,201,138,.12);font-size:13px;flex:0 0 22px}
+  .auth-perks .perk strong{color:var(--gold-bright);font-weight:600;margin-right:2px}
+  .auth-perks .perks-title{font-family:var(--font-cn);font-size:13px;color:var(--gold-bright);letter-spacing:2px;margin-bottom:6px}
+  .status-line{margin-top:10px;font-size:12.5px;min-height:16px;color:var(--red);text-align:center}
+  .auth-hint{margin-top:12px;font-size:11px;color:var(--ink-dim);line-height:1.7;text-align:center;opacity:.8}
 </style>
 </head>
 <body>
@@ -151,9 +183,9 @@
   </div>
   <div class="user-menu">
     <div class="avatar" id="avatar">辰</div>
-    <span id="uname" style="color:var(--ink-dim);font-size:13px"></span>
-    <button id="btnSettings">模型设置</button>
-    <button id="btnLogout" style="padding:6px 12px">退出</button>
+    <span id="uname" style="color:var(--ink-dim);font-size:13px;display:none"></span>
+    <button id="btnLogin" style="padding:6px 14px">登录 / 注册</button>
+    <button id="btnLogout" style="padding:6px 12px;display:none">退出</button>
   </div>
 </nav>
 
@@ -176,30 +208,33 @@
     </div>
     <div class="row2">
       <div class="field"><label>出生日期</label>
-        <input id="date" type="text" placeholder="1996-10-11" value="1996-10-11"></div>
+        <input id="date" type="text" placeholder="如 1996-10-11"></div>
       <div class="field"><label>出生时间</label>
-        <input id="time" type="text" placeholder="09:30" value="09:30"></div>
+        <input id="time" type="text" placeholder="如 09:30">
+        <div class="hint">不知可留空</div></div>
     </div>
     <div class="field"><label>性别</label>
       <div class="seg" id="genderSeg">
-        <button data-g="1" class="on">男</button>
+        <button data-g="1">男</button>
         <button data-g="2">女</button>
       </div>
     </div>
-    <div class="field"><label>出生地（自动真太阳时校正）</label>
-      <input id="location" list="cityList" placeholder="城市名，如 济源市" value="天水">
+    <div class="field"><label>出生地</label>
+      <input id="location" list="cityList" placeholder="城市名，如 济源市">
       <datalist id="cityList"></datalist>
       <div class="geo-hint" id="geoHint"></div>
-      <div class="hint">支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
+      <div class="hint">自动真太阳时校正；支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
     </div>
-    <div class="field"><label>运势区间（留空 = 近三年）</label>
+    <div class="field"><label>运势区间</label>
       <div class="row2">
         <input id="startY" type="text" placeholder="起始年 2025">
         <input id="endY" type="text" placeholder="结束年 2028">
       </div>
+      <div class="hint">留空 = 近三年</div>
     </div>
     <button class="primary" id="btnSubmit" style="width:100%;padding:11px;font-size:15px">推演命盘 · 生成报告</button>
     <div class="hint" id="status" style="margin-top:10px"></div>
+    <button id="btnSaveAccount" class="primary" style="display:none;margin-top:12px;width:100%;padding:11px;font-size:14px">🔐 保存此命盘到我的账号</button>
 
     <div class="recent-list">
       <div class="hint">我的命盘历史</div>
@@ -239,23 +274,34 @@
   </div>
 </div>
 
-<!-- 设置抽屉 -->
-<div class="drawer" id="drawer" style="position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:70">
-  <div class="drawer-card" style="position:absolute;right:0;top:0;height:100%;width:380px;max-width:90vw;background:var(--panel2);border-left:1px solid var(--line);padding:22px;overflow-y:auto">
-    <h3 style="margin:0 0 16px;color:var(--gold-bright);font-size:16px;letter-spacing:2px">大模型设置</h3>
-    <div class="field"><label>API Base URL</label>
-      <input id="cfgBase" placeholder="https://api.deepseek.com/v1"></div>
-    <div class="field"><label>API Key</label>
-      <input id="cfgKey" type="password" placeholder="sk-..." autocomplete="off"></div>
-    <div class="field"><label>模型名</label>
-      <input id="cfgModel" placeholder="deepseek-chat"></div>
-    <div class="small hint" id="cfgHint" style="display:none;color:var(--gold-bright);border:1px solid #8a6c3a;border-radius:8px;padding:8px 10px">
-      ✅ 服务端已预置模型密钥，可留空直接对话；填自有 Key 将覆盖。</div>
-    <div class="small hint">Key 仅存本机浏览器 localStorage，请求时透传，服务端不落盘。兼容 DeepSeek/OpenAI/通义/Kimi/智谱/Ollama。</div>
-    <div style="display:flex;gap:10px;margin-top:18px">
-      <button class="primary" id="cfgSave" style="flex:1">保存</button>
-      <button id="cfgClose" style="flex:1">关闭</button>
+
+<!-- 游客注册 / 登录浮层（站内，不跳走） -->
+<div class="auth-mask" id="authMask">
+  <div class="auth-card">
+    <button class="auth-x" id="authClose" aria-label="关闭">✕</button>
+    <div class="auth-tabs">
+      <button id="authTabLogin" class="on">登录</button>
+      <button id="authTabReg">注册</button>
     </div>
+    <div id="authLogin">
+      <div class="field"><label>用户名</label><input id="aLUser" placeholder="用户名" autocomplete="username"></div>
+      <div class="field"><label>密码</label><input id="aLPwd" type="password" placeholder="密码" autocomplete="current-password"></div>
+      <button class="primary" id="btnAuthLogin" style="width:100%;padding:11px;font-size:15px">登 录</button>
+    </div>
+    <div id="authReg" style="display:none">
+      <div class="field"><label>用户名</label><input id="aRUser" placeholder="字母 / 数字，用于登录" autocomplete="username"></div>
+      <div class="field"><label>昵称</label><input id="aRNick" placeholder="展示名，如 天机子" autocomplete="nickname"></div>
+      <div class="field"><label>密码 <small>至少 6 位</small></label><input id="aRPwd" type="password" placeholder="设置密码" autocomplete="new-password"></div>
+      <button class="primary" id="btnAuthReg" style="width:100%;padding:11px;font-size:15px">注 册</button>
+    </div>
+    <div id="authStatus" class="status-line"></div>
+    <div class="auth-perks">
+      <div class="perks-title">登录后可解锁</div>
+      <div class="perk"><span class="perk-ic">💬</span><span><strong>不限轮次</strong>紫微斗数 AI 答疑</span></div>
+      <div class="perk"><span class="perk-ic">📚</span><span><strong>云端永久保存</strong>所有命盘与历史</span></div>
+      <div class="perk"><span class="perk-ic">🌿</span><span><strong>完整版</strong>天机阁 · 推演阁</span></div>
+    </div>
+    <div class="auth-hint">登录即代表你已阅读并理解：命理仅供文化娱乐参考，不构成任何专业建议。</div>
   </div>
 </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "bazi-system",
-  "version": "1.0.0",
+  "version": "6.1.0",
   "description": "八字命理排盘系统：阳历/农历输入、真太阳时校正、完整命盘报告，附大模型命理答疑窗口",
   "type": "module",
   "main": "server.js",

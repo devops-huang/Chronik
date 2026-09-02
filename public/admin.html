@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>辰箓 · 模型管理后台</title>
+  <style>
+    :root{
+      --bg:#0e0c08; --panel:#171310; --panel-2:#1f1a14; --line:#33291d;
+      --gold:#c9a85a; --gold-bright:#e8c878; --txt:#ece3d2; --muted:#9a8f78;
+      --ok:#5fbf7a; --err:#e07a6a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100dvh;background:radial-gradient(1200px 600px at 50% -10%,#241c12 0%,var(--bg) 60%);
+      font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--txt);
+      display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:100%;max-width:440px;background:linear-gradient(180deg,var(--panel-2),var(--panel));
+      border:1px solid var(--line);border-radius:18px;padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
+    h1{font-size:19px;margin:0;letter-spacing:1px;color:var(--gold-bright)}
+    .sub{color:var(--muted);font-size:12.5px;margin:6px 0 20px;line-height:1.6}
+    .field{position:relative;margin-bottom:15px}
+    .field label{display:block;font-size:13px;color:var(--gold);margin-bottom:7px;letter-spacing:.5px}
+    .field input{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);
+      background:var(--bg);color:var(--txt);font-size:14px;outline:none;transition:border-color .15s}
+    .field input:focus{border-color:var(--gold)}
+    .field .tip{font-size:11.5px;color:var(--muted);margin-top:6px}
+    .mini{position:absolute;right:8px;top:30px;padding:4px 10px;border-radius:7px;border:1px solid var(--line);
+      background:var(--bg);color:var(--gold);font-size:11.5px;cursor:pointer;letter-spacing:.5px}
+    .mini:hover{border-color:var(--gold);color:var(--gold-bright)}
+    .btn{width:100%;margin-top:8px;padding:12px;border:none;border-radius:10px;cursor:pointer;
+      background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#1a140a;font-weight:700;
+      font-size:14.5px;letter-spacing:1px;transition:filter .15s}
+    .btn:hover{filter:brightness(1.06)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .status{margin-top:16px;font-size:13px;text-align:center;min-height:20px;line-height:1.5}
+    .status.ok{color:var(--ok)} .status.err{color:var(--err)} .status.info{color:var(--muted)}
+    .foot{margin-top:18px;text-align:center;font-size:11px;color:var(--muted)}
+    .foot a{color:var(--gold);text-decoration:none}
+    code{background:var(--bg);padding:2px 6px;border-radius:6px;color:var(--gold-bright)}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand"><span class="dot"></span><h1>辰箓 · 模型管理后台</h1></div>
+    <div class="sub">管理员专用 · 配置大模型问答所需的接口地址、密钥与模型。<br>普通用户无此入口，配置仅服务端加密存储。</div>
+
+    <div class="field">
+      <label>管理员令牌</label>
+      <input id="token" type="password" placeholder="访问令牌" autocomplete="off">
+      <button type="button" class="mini" id="reloadBtn" style="top:30px">🔄 加载</button>
+      <div class="tip">URL 带 <code>?token=</code> 可自动填入并加载当前配置</div>
+    </div>
+    <div class="field">
+      <label>接口地址 Base URL</label>
+      <input id="baseUrl" placeholder="https://xxx/v1">
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
+      <div class="tip" id="keyTip">首次配置必填；仅修改其他项时可留空（保留原密钥）</div>
+    </div>
+    <div class="field">
+      <label>模型名 Model</label>
+      <input id="model" placeholder="如 qwen-plus / deepseek-chat">
+    </div>
+
+    <button class="btn" id="saveBtn" disabled>保存配置</button>
+    <div class="status info" id="status">请填写令牌后加载或保存</div>
+    <div class="foot"><a href="/studio.html">← 返回推演阁</a></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const status = (msg, cls) => { const s = $('status'); s.textContent = msg; s.className = 'status ' + (cls || 'info'); };
+    const tokenFromUrl = new URL(location.href).searchParams.get('token') || '';
+
+    function setSaveEnabled() { $('saveBtn').disabled = !$('token').value.trim(); }
+
+    async function loadCurrent() {
+      const token = $('token').value.trim();
+      if (!token) { status('请先填写管理员令牌', 'err'); return; }
+      try {
+        const r = await fetch('/api/admin/llm?token=' + encodeURIComponent(token));
+        const d = await r.json();
+        if (!r.ok) { status(d.error || '加载失败', 'err'); return; }
+        $('baseUrl').value = d.baseUrl || '';
+        $('model').value = d.model || '';
+        $('apiKey').value = '';
+        if (d.configured) {
+          $('keyTip').textContent = '当前已配置：' + (d.apiKeyMask || '****') + '（' + (d.updatedAt ? '更新于 ' + d.updatedAt : '') + '）；留空则保持不变';
+          status('已加载当前配置（密钥已脱敏）', 'ok');
+        } else {
+          $('keyTip').textContent = '尚未配置，apiKey 为必填';
+          status('当前未配置模型', 'info');
+        }
+      } catch (e) { status('网络错误：' + e.message, 'err'); }
+    }
+
+    $('token').addEventListener('input', setSaveEnabled);
+    $('reloadBtn').addEventListener('click', loadCurrent);
+    $('saveBtn').addEventListener('click', async () => {
+      const token = $('token').value.trim();
+      const baseUrl = $('baseUrl').value.trim();
+      const apiKey = $('apiKey').value.trim();
+      const model = $('model').value.trim();
+      if (!token) { status('请填写管理员令牌', 'err'); return; }
+      if (!baseUrl || !model) { status('Base URL 与 Model 为必填', 'err'); return; }
+      $('saveBtn').disabled = true; status('保存中…', 'info');
+      try {
+        const r = await fetch('/api/admin/llm', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, baseUrl, apiKey, model }),
+        });
+        const d = await r.json();
+        if (!r.ok) { status(d.error || '保存失败', 'err'); }
+        else { status('✅ 已保存（密钥 ' + (d.apiKeyMask || '****') + ' 已加密存储）', 'ok'); $('apiKey').value = ''; }
+      } catch (e) { status('网络错误：' + e.message, 'err'); }
+      finally { $('saveBtn').disabled = false; }
+    });
+
+    // 初始化：URL 带 token 则自动填入并加载
+    if (tokenFromUrl) { $('token').value = tokenFromUrl; setSaveEnabled(); loadCurrent(); }
+  </script>
+</body>
+</html>

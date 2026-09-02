@@ -37,3 +37,46 @@ CREATE TABLE IF NOT EXISTS charts (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_charts_user ON charts(user_id, created_at DESC);
+
+-- ── 游客免登录试用（5.1）──
+-- charts 支持匿名归属：user_id 可空，anon_id 标记游客会话
+ALTER TABLE charts ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE charts ADD COLUMN IF NOT EXISTS anon_id VARCHAR(64);
+CREATE INDEX IF NOT EXISTS idx_charts_anon ON charts(anon_id) WHERE anon_id IS NOT NULL;
+
+-- 匿名频次限制（防刷 LLM 额度）
+CREATE TABLE IF NOT EXISTS anon_chart_rate (
+  ip           TEXT PRIMARY KEY,
+  cnt          INT NOT NULL DEFAULT 0,
+  window_start TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS anon_chat_rate (
+  anon_id TEXT PRIMARY KEY,
+  rounds  INT NOT NULL DEFAULT 0
+);
+
+-- ── 对话历史持久化（5.2）──
+-- 每次排盘对应一段独立对话；conversations.user_id 关联用户（删号级联物理删除），
+-- anon_id 兼容游客匿名会话（注册后并入账号）。messages 级联删除，无软删。
+CREATE TABLE IF NOT EXISTS conversations (
+  id          BIGSERIAL PRIMARY KEY,
+  user_id     BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  anon_id     VARCHAR(64),
+  chart_id    BIGINT REFERENCES charts(id) ON DELETE CASCADE,
+  title       VARCHAR(120),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_conv_user  ON conversations(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conv_anon  ON conversations(anon_id) WHERE anon_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_conv_chart ON conversations(chart_id);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id               BIGSERIAL PRIMARY KEY,
+  conversation_id  BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  role             VARCHAR(20) NOT NULL,        -- 'user' | 'assistant'
+  content          TEXT NOT NULL,
+  tokens           INT,                          -- 估算 token 数（成本/上下文窗口用）
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at ASC);

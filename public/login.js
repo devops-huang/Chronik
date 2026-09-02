@@ -167,6 +167,9 @@
     });
   }));
 
+  // 免登录试用 → 进推演阁（游客态）
+  withEl('btnGuest', (b) => { b.onclick = () => { location.href = '/studio.html'; }; });
+
   // 已登录则直接进首页
   fetch('/api/auth/me').then((r) => r.ok ? r.json() : null).then((me) => { if (me) location.href = '/index.html'; }).catch(() => {});
 })();

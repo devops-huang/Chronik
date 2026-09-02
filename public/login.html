@@ -145,6 +145,19 @@
   .extra { text-align:center; font-size:11.5px; color:var(--ink-dim); margin-top:14px; }
   .field small { color: var(--ink-dim); font-size: 10.5px; }
 
+  /* 免登录试用入口 */
+  .guest-divider { display:flex; align-items:center; gap:10px; color:var(--ink-dim); font-size:11px; letter-spacing:4px; margin:16px 0 10px; }
+  .guest-divider::before, .guest-divider::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); }
+  .ghost {
+    width:100%; padding:11px; font-size:14px; letter-spacing:2px;
+    background:transparent; color:var(--gold-bright);
+    border:1px solid var(--gold); border-radius:12px; cursor:pointer;
+    font-family:var(--font-cn); transition:.2s;
+  }
+  .ghost:hover { background:rgba(232,201,138,.12); box-shadow:0 0 20px rgba(232,201,138,.25); }
+  .ghost:focus-visible { outline:2px solid var(--gold-bright); outline-offset:2px; }
+  .guest-hint { text-align:center; font-size:10.5px; color:var(--ink-dim); margin-top:8px; }
+
   /* 右下角小八卦指引 */
   .footer-deco {
     position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
@@ -196,6 +209,10 @@
 
       <div id="status"></div>
       <div class="extra">登录即代表你已阅读并理解：命理仅供文化娱乐参考，不构成任何专业建议。</div>
+
+      <div class="guest-divider"><span>或</span></div>
+      <button class="ghost" id="btnGuest" type="button">免登录试用 →</button>
+      <div class="guest-hint">无需注册，可直接体验推演阁（问答限 3 轮）</div>
     </section>
   </main>
 
