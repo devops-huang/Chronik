@@ -176,18 +176,18 @@
     </div>
     <div class="row2">
       <div class="field"><label>出生日期</label>
-        <input id="date" type="text" placeholder="1996-10-11" value="1996-10-11"></div>
-      <div class="field"><label>出生时间</label>
-        <input id="time" type="text" placeholder="09:30" value="09:30"></div>
+        <input id="date" type="text" placeholder="如 1996-10-11"></div>
+      <div class="field"><label>出生时间（不知可留空）</label>
+        <input id="time" type="text" placeholder="如 09:30"></div>
     </div>
     <div class="field"><label>性别</label>
       <div class="seg" id="genderSeg">
-        <button data-g="1" class="on">男</button>
+        <button data-g="1">男</button>
         <button data-g="2">女</button>
       </div>
     </div>
     <div class="field"><label>出生地（自动真太阳时校正）</label>
-      <input id="location" list="cityList" placeholder="城市名，如 济源市" value="天水">
+      <input id="location" list="cityList" placeholder="城市名，如 济源市">
       <datalist id="cityList"></datalist>
       <div class="geo-hint" id="geoHint"></div>
       <div class="hint">支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
