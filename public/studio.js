@@ -5,7 +5,7 @@
   const withEl = (id, fn) => { const el = $(id); if (!el) { console.warn('[studio] missing element #' + id); return; } fn(el); };
 
   const state = {
-    calendar: 'lunar', gender: 1, reportHtml: null, chartContext: null,
+    calendar: 'lunar', gender: null, reportHtml: null, chartContext: null,
     messages: [], streaming: false, llmPreset: false, serverBase: '', serverModel: '',
     loadId: new URLSearchParams(location.search).get('load'),
   };
@@ -109,6 +109,7 @@
         const time = (($('time') || {}).value || '').trim() || '00:00';
         const location = (($('location') || {}).value || '').trim();
         if (!date) { withEl('status', (s) => { s.textContent = '⚠️ 请填写出生日期'; }); return; }
+        if (!state.gender) { withEl('status', (s) => { s.textContent = '⚠️ 请选择性别'; }); return; }
         const body = { calendar: state.calendar, date, time, gender: state.gender, location };
         const sy = (($('startY') || {}).value || '').trim(), ey = (($('endY') || {}).value || '').trim();
         if (sy && ey) body.fortune = { level: 'month', startDateTime: `${sy}-01-01`, endDateTime: `${ey}-12-31` };
