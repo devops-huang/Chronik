@@ -177,8 +177,9 @@
     <div class="row2">
       <div class="field"><label>出生日期</label>
         <input id="date" type="text" placeholder="如 1996-10-11"></div>
-      <div class="field"><label>出生时间（不知可留空）</label>
-        <input id="time" type="text" placeholder="如 09:30"></div>
+      <div class="field"><label>出生时间</label>
+        <input id="time" type="text" placeholder="如 09:30">
+        <div class="hint">不知可留空</div></div>
     </div>
     <div class="field"><label>性别</label>
       <div class="seg" id="genderSeg">
@@ -186,17 +187,18 @@
         <button data-g="2">女</button>
       </div>
     </div>
-    <div class="field"><label>出生地（自动真太阳时校正）</label>
+    <div class="field"><label>出生地</label>
       <input id="location" list="cityList" placeholder="城市名，如 济源市">
       <datalist id="cityList"></datalist>
       <div class="geo-hint" id="geoHint"></div>
-      <div class="hint">支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
+      <div class="hint">自动真太阳时校正；支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
     </div>
-    <div class="field"><label>运势区间（留空 = 近三年）</label>
+    <div class="field"><label>运势区间</label>
       <div class="row2">
         <input id="startY" type="text" placeholder="起始年 2025">
         <input id="endY" type="text" placeholder="结束年 2028">
       </div>
+      <div class="hint">留空 = 近三年</div>
     </div>
     <button class="primary" id="btnSubmit" style="width:100%;padding:11px;font-size:15px">推演命盘 · 生成报告</button>
     <div class="hint" id="status" style="margin-top:10px"></div>
