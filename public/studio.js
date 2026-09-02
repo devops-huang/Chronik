@@ -8,6 +8,7 @@
     calendar: 'lunar', gender: null, reportHtml: null, chartContext: null,
     chartId: null, conversationId: null, streaming: false, adminConfigured: false,
     guest: null, user: null,
+    messages: [], llmPreset: false, serverBase: '', serverModel: '',
     loadId: new URLSearchParams(location.search).get('load'),
   };
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
