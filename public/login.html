@@ -164,6 +164,13 @@
     z-index:3; font-family: var(--font-en);
     color: var(--ink-dim); font-size:10px; letter-spacing:6px;
   }
+  .site-footer{ margin-top:22px; padding:14px 12px 28px; text-align:center; font-size:11px; color:#8a7a5c; line-height:1.7 }
+  .site-footer .footer-sep{ margin:0 8px; opacity:.5 }
+  .site-footer a{ color:var(--gold-bright); text-decoration:none }
+  .site-footer a:hover{ text-decoration:underline }
+  .consent{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-dim); margin:10px 0 4px; line-height:1.5 }
+  .consent a{ color:var(--gold-bright); text-decoration:none }
+  .consent input{ width:15px; height:15px; accent-color:var(--gold) }
 </style>
 </head>
 <body>
@@ -204,6 +211,7 @@
         <div class="field"><label>用户名</label><input id="rUser" placeholder="用于登录（建议字母/数字）" autocomplete="username"></div>
         <div class="field"><label>昵称</label><input id="rNick" placeholder="展示名，如 天机子"></div>
         <div class="field"><label>密码 <small>至少 6 位</small></label><input id="rPwd" type="password" placeholder="设置密码" autocomplete="new-password"></div>
+        <label class="consent"><input type="checkbox" id="rConsent"> 我已阅读并同意 <a href="/privacy.html" target="_blank" rel="noopener">《隐私政策》</a> 与 <a href="/privacy.html" target="_blank" rel="noopener">《用户协议》</a></label>
         <button class="primary" id="btnReg" style="width:100%;padding:11px;font-size:15px">注 册</button>
       </div>
 
@@ -217,6 +225,13 @@
   </main>
 
   <div class="footer-deco">H A L L &nbsp; O F &nbsp; H E A V E N L Y &nbsp; S E C R E T S</div>
+  <footer class="site-footer">
+    <span id="icp-no">备案号待填</span>
+    <span class="footer-sep">·</span>
+    <a href="/privacy.html">隐私政策</a>
+    <span class="footer-sep">·</span>
+    <span>本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议</span>
+  </footer>
 
 <script src="/login.js"></script>
 </body>

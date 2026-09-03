@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>隐私政策 · 辰箓</title>
+<style>
+  :root{ --bg:#0e0b08; --panel:#16110b; --line:#3a2d1c; --gold:#caa45a; --gold-bright:#e8c987; --ink:#e9dcc2; --ink-dim:#9c8c6c; --red:#c44a3c; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.8}
+  .wrap{max-width:860px;margin:0 auto;padding:32px 18px 60px}
+  h1{font-size:24px;color:var(--gold-bright);letter-spacing:2px;border-bottom:1px solid var(--line);padding-bottom:14px}
+  h2{font-size:17px;color:var(--gold);margin-top:30px}
+  p,li{font-size:14px;color:var(--ink);opacity:.92}
+  .meta{color:var(--ink-dim);font-size:12px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel);color:var(--gold-bright)}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:14px;padding:2px 10px;font-size:12px;color:var(--gold-bright);margin:2px 4px 2px 0}
+  a{color:var(--gold-bright)}
+  .footer{margin-top:36px;text-align:center;color:var(--ink-dim);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
+  code{background:var(--panel);padding:1px 6px;border-radius:5px;color:var(--gold-bright)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>辰箓 · 隐私政策</h1>
+  <p class="meta">生效版本：v6.3.0　最后更新：2026-09-03　依据：《个人信息保护法》第17条</p>
+
+  <p>辰箓（运营方：嘉为蓝鲸）是一款传统命理文化的展示与研究工具。我们仅收集提供产品功能所必需的信息，并严格遵循「告知—同意」原则。本页说明我们收集什么、为何收集、保存多久，以及你拥有的权利。</p>
+
+  <h2>一、我们收集的信息</h2>
+  <ul>
+    <li><b>账号信息</b>：用户名、密码（经 scrypt 加盐哈希，服务端不存明文）、昵称、邮箱（可选）。</li>
+    <li><b>出生信息</b>：出生日期、时辰、历法、性别、出生地（用于排盘，仅由出生日期推算日主/月令）。</li>
+    <li><b>命盘与对话</b>：你生成的命盘、与 AI 的问答内容（含模型输出）。</li>
+    <li><b>匿名试用数据</b>：未登录时的游客 ID、匿名排盘/问答、频率限制计数。</li>
+    <li><b>埋点与留痕</b>：功能使用统计（如运势卡「为什么」展开）、AI 输出留痕（input/output 摘要、是否命中内容禁区），用于合规审计与产品优化。</li>
+  </ul>
+
+  <h2>二、收集目的与法律依据</h2>
+  <p>目的：提供排盘与 AI 文化解读、保障账号安全、履行合规审计（内容安全留痕 ≥6 月）、改进产品。法律依据：<span class="pill">履行合同所必需</span><span class="pill">与你另行取得的单独同意</span>（AI 问答、埋点）。</p>
+
+  <h2>三、信息使用方式</h2>
+  <p>仅用于本产品功能与合规审计；命理内容由 AI 基于公开命理学说生成，<b>不构成任何专业建议</b>。</p>
+
+  <h2>四、委托处理与跨境</h2>
+  <p>AI 答疑的模型推理委托<b>阿里云百炼</b>作为受托处理方完成，我们与其约定处理目的、期限、方式、信息种类与安全保护措施。我们<b>不主动向境外</b>提供你的个人信息；如未来涉及跨境传输，将单独告知并依规取得你的同意。</p>
+
+  <h2>五、保存期限</h2>
+  <table>
+    <tr><th>信息类别</th><th>保存位置</th><th>保存期限</th></tr>
+    <tr><td>账号与密码哈希</td><td>users</td><td>账号存续期；注销后立即删除</td></tr>
+    <tr><td>出生信息 / 命盘</td><td>users / charts</td><td>账号存续期；注销后删除</td></tr>
+    <tr><td>问答内容</td><td>conversations / messages</td><td>账号存续期；注销后删除</td></tr>
+    <tr><td>匿名试用数据</td><td>charts(anon)/conversations(anon) 等</td><td>无归属且超过 30 天自动清理</td></tr>
+    <tr><td>AI 输出留痕</td><td>ai_audit</td><td>≥ 6 个月（合规审计）</td></tr>
+    <tr><td>功能埋点</td><td>events / fortune_events</td><td>匿名为主；注销或超期清理</td></tr>
+  </table>
+
+  <h2>六、你的权利</h2>
+  <ul>
+    <li><b>查阅 / 复制 / 更正</b>：登录后可在设置查看与修改出生信息；</li>
+    <li><b>导出</b>：<code>POST /api/me/export</code> 返回你的数据副本（JSON）；</li>
+    <li><b>删除 / 注销</b>：<code>POST /api/me/delete</code> 按「账号 + 关联匿名 ID」双条件删除六表数据并出具回执；</li>
+    <li><b>撤回同意</b>：注销即视为撤回基于同意的处理；撤回前已进行的处理不受影响。</li>
+  </ul>
+
+  <h2>七、内容安全与举报</h2>
+  <p>我们对 AI 输出施行四层免责与关键词禁区（医疗/法律/投资/政治等 §6.1 A–J 类）；如你发现违规内容，可通过页面「⚠ 内容举报 / 反馈」提交，我们将核查处理。</p>
+
+  <h2>八、联系我们</h2>
+  <p>隐私事宜请联系：privacy@chenlu.example（示例邮箱）。如你认为处理违反个人信息保护相关规定，可向网信部门投诉举报。</p>
+
+  <div class="footer">
+    <span id="icp-no">备案号待填</span> · 本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议
+  </div>
+</div>
+</body>
+</html>

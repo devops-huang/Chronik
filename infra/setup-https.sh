@@ -60,10 +60,33 @@ echo "▶ [3/6] 校验配置并启动 Nginx ..."
 nginx -t
 systemctl enable --now nginx
 
-echo "▶ [4/6] 申请 Let's Encrypt 证书（webroot 模式，不改已写好的 conf）..."
-certbot certonly --webroot -w "$WEBROOT" \
-  -d "$DOMAIN" -d "$WWW" \
-  --non-interactive --agree-tos -m "$EMAIL"
+echo "▶ [4/6] 申请 / 续期 Let's Encrypt 证书（幂等，webroot 模式）..."
+
+# 幂等保护：证书已存在且有效期 >30 天则直接跳过，避免重复申请被 Let's Encrypt 限流，
+# 也保证本脚本可安全重复执行（无死循环、成功即退出）。
+_FULLCHAIN="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
+if [ -f "$_FULLCHAIN" ] && openssl x509 -checkend 2592000 -noout -in "$_FULLCHAIN" 2>/dev/null; then
+  echo "  ✓ 证书已存在且有效期 >30 天，跳过申请（幂等）。如需强制续期请手测：certbot renew --cert-name ${DOMAIN}"
+else
+  if [ -f "$_FULLCHAIN" ]; then
+    echo "  … 证书临近过期，发起续期 ..."
+    # 成功即退出（--non-interactive 下 renew 命中已配置证书）；失败再回退到 certonly 重建
+    if certbot renew --cert-name "$DOMAIN" --non-interactive; then
+      echo "  ✓ 续期成功"
+    else
+      echo "  … renew 失败，回退 certonly 重建 ..."
+      certbot certonly --webroot -w "$WEBROOT" \
+        -d "$DOMAIN" -d "$WWW" \
+        --non-interactive --agree-tos -m "$EMAIL"
+    fi
+  else
+    echo "  … 首次申请证书 ..."
+    certbot certonly --webroot -w "$WEBROOT" \
+      -d "$DOMAIN" -d "$WWW" \
+      --non-interactive --agree-tos -m "$EMAIL"
+  fi
+  echo "  ✓ 证书签发/续期完成（已 break，不会重复请求）"
+fi
 
 echo "▶ [5/6] 重载 Nginx 启用 HTTPS ..."
 systemctl reload nginx

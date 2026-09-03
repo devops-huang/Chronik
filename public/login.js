@@ -154,10 +154,12 @@
     const username  = (($('rUser') || {}).value || '').trim();
     const nickname  = (($('rNick') || {}).value || '').trim();
     const password  = (($('rPwd')  || {}).value || '').trim();
+    const consent   = !!($('rConsent') || {}).checked;
     if (!username || !password) return status('请填写用户名与密码', 'err');
     if (password.length < 6) return status('密码至少 6 位', 'err');
+    if (!$('rConsent') || !consent) return status('请先勾选同意《隐私政策》与《用户协议》', 'err');
     status('注册中…');
-    try { await api('/api/auth/register', { username, password, nickname }); location.href = '/index.html'; }
+    try { await api('/api/auth/register', { username, password, nickname, consent: true }); location.href = '/index.html'; }
     catch (e) { status(e.message, 'err'); }
   }; });
 

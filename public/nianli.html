@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>辰箓 · 年历（流年流月）</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:8px 0 18px}
+  .page-head h1{font-size:30px;margin:0;color:var(--gold-bright);letter-spacing:4px}
+  .page-head .sub{color:var(--ink-dim);font-size:13px;margin-top:6px}
+  /* 娱乐参考角标（复用内容策略 L1 免责链） */
+  .ent-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;
+    background:rgba(95,208,192,.10);border:1px solid rgba(95,208,192,.35);color:var(--jade);font-size:12px}
+  .ent-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--jade);box-shadow:0 0 10px var(--jade)}
+  .l1-note{margin:0 0 20px;padding:12px 14px;border-radius:12px;background:rgba(232,201,138,.07);
+    border:1px dashed rgba(232,201,138,.4);color:var(--ink-dim);font-size:12.5px;line-height:1.7}
+  /* 当前流年概览 */
+  .year-card{margin-bottom:26px}
+  .year-card .ygan{font-family:var(--font-cn);font-size:30px;color:var(--gold-bright);letter-spacing:3px}
+  .year-card .ymeta{color:var(--ink-dim);font-size:13px;margin-top:4px}
+  .year-verdict{display:inline-block;margin-top:10px;padding:5px 14px;border-radius:999px;font-weight:700;font-size:14px}
+  /* 流月网格 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .mc{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:var(--r);padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .mc .gan{font-family:var(--font-cn);font-size:22px;color:var(--gold-bright);letter-spacing:2px}
+  .mc .rng{color:var(--ink-dim);font-size:11.5px;margin:5px 0 10px}
+  .mc .vb{position:absolute;top:0;right:0;width:6px;height:100%}
+  .mc .vl{display:inline-block;padding:3px 11px;border-radius:999px;font-weight:700;font-size:12.5px;margin-bottom:9px}
+  .mc .hl{font-size:13px;line-height:1.65;color:var(--ink)}
+  .mc .shen{margin-top:9px;font-size:11.5px;color:var(--ink-dim)}
+  .mc .rel{margin-top:5px;font-size:11.5px;color:var(--purple)}
+  /* verdict 配色：good=吉/mid=平/warn=防 */
+  .v-good{background:rgba(95,208,192,.16);color:var(--jade)}
+  .v-mid{background:rgba(232,201,138,.16);color:var(--gold-bright)}
+  .v-warn{background:rgba(216,115,95,.16);color:var(--red)}
+  .bar-good{background:var(--jade)} .bar-mid{background:var(--gold)} .bar-warn{background:var(--red)}
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-dim)}
+  .empty a{display:inline-block;margin-top:14px}
+  .footer-note{margin-top:34px;text-align:center;color:var(--ink-dim);font-size:12px}
+  .footer-note a{color:var(--gold)}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand" onclick="location.href='/index.html'">
+    <div class="seal">箓</div>
+    <div><div class="cn">辰箓</div><div class="en">Chen Lu · Destiny</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="/index.html">天机阁</a>
+    <a href="/studio.html">推演阁</a>
+    <a href="/nianli.html" class="on">年历</a>
+  </div>
+  <div class="user-menu">
+    <div class="avatar" id="avatar">辰</div>
+    <span id="uname" style="color:var(--ink-dim);font-size:13px"></span>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="page-head">
+    <div>
+      <h1>流年 · 流月运势</h1>
+      <div class="sub">当前命盘在本流年各月的吉凶起伏 · 仅作文化娱乐参考</div>
+    </div>
+    <span class="ent-badge"><span class="dot"></span>AI 生成 · 仅供娱乐参考</span>
+  </div>
+
+  <p class="l1-note" id="l1">—</p>
+
+  <div id="yearBox"></div>
+  <div id="monthGrid" class="grid"></div>
+  <div id="empty" class="empty" style="display:none">
+    <div>还没有命盘记录，无法生成年历运势。</div>
+    <a class="button primary" href="/studio.html">前往推演阁生成命盘</a>
+  </div>
+
+  <div class="footer-note">
+    <span id="icp-no">备案号待填</span> · <a href="/privacy.html">隐私政策</a>
+  </div>
+</div>
+
+<script type="module" src="/nianli.js"></script>
+</body>
+</html>

@@ -254,6 +254,11 @@
     .cal-cell .gz{ font-size:10px }
     .cal-cell .lu{ font-size:9px }
   }
+  .site-footer{ margin-top:28px; padding:16px 12px; text-align:center; font-size:12px; color:#8a7a5c; line-height:1.7; border-top:1px solid rgba(190,160,90,.18) }
+  .site-footer .footer-sep{ margin:0 8px; opacity:.5 }
+  .site-footer a{ color:var(--gold-bright); text-decoration:none }
+  .site-footer a:hover{ text-decoration:underline }
+  .l1-banner{ margin:0 auto 18px; max-width:920px; background:rgba(190,160,90,.07); border:1px solid rgba(190,160,90,.22); color:#cdb98c; font-size:12.5px; line-height:1.75; padding:12px 16px; border-radius:12px }
 </style>
 </head>
 <body>
@@ -288,9 +293,20 @@
   </div>
 </section>
 
+<div class="l1-banner">辰箓是传统命理文化的研究与展示工具。所有内容均由 AI 基于公开命理学说自动生成，仅供文化研究与娱乐参考，不构成任何专业建议，亦不对据此作出的任何决策负责。</div>
+
 <div class="container">
   <div id="dash" class="loading">正在推演天机…</div>
+  <div id="liuyueCard"></div>
 </div>
+
+<footer class="site-footer">
+  <span id="icp-no">备案号待填</span>
+  <span class="footer-sep">·</span>
+  <a href="/privacy.html">隐私政策</a>
+  <span class="footer-sep">·</span>
+  <span>本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议</span>
+</footer>
 
 <script src="/index.js"></script>
 </body>

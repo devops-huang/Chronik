@@ -98,3 +98,84 @@ CREATE TABLE IF NOT EXISTS fortune_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_fortune_events_day ON fortune_events(day, action);
+
+-- ── 密码重置通道（R0 · 认证修复后强制全量重置）──
+-- 旧版伪同步哈希全部失效，用户需凭重置 token 设新密码。
+-- token 由服务端随机生成；生产环境经邮件下发，自托管/无 SMTP 时由接口回传。
+CREATE TABLE IF NOT EXISTS password_resets (
+  token      VARCHAR(64) PRIMARY KEY,
+  user_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at    TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_pwreset_user ON password_resets(user_id);
+
+-- ── AI 输出留痕（R1† · V3 合规，留存 ≥6 月）──
+-- 每次 AI 答疑的 input/output 摘要、命中禁区标记与用户标识，供合规审计与投诉核查。
+CREATE TABLE IF NOT EXISTS ai_audit (
+  id         BIGSERIAL PRIMARY KEY,
+  user_id    BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  anon_id    VARCHAR(64),
+  conversation_id BIGINT,
+  model      VARCHAR(60),
+  input_snippet  TEXT,                 -- 用户输入摘要（截断）
+  output_snippet TEXT,                -- AI 输出摘要（截断）
+  blocked    BOOLEAN NOT NULL DEFAULT false,
+  category   VARCHAR(8),              -- 命中 §6.1 类别 A–J（命中时）
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_aiaudit_created ON ai_audit(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_aiaudit_user ON ai_audit(user_id) WHERE user_id IS NOT NULL;
+
+-- ── 用户举报 / 投诉入口（R1-5）──
+CREATE TABLE IF NOT EXISTS reports (
+  id         BIGSERIAL PRIMARY KEY,
+  user_id    BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  anon_id    VARCHAR(64),
+  target     VARCHAR(40) NOT NULL DEFAULT 'ai',  -- 'ai' | 'content' | 'user'
+  detail     TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_reports_created ON reports(created_at DESC);
+
+-- ── R2† 隐私数据权利闭环（V1 / V2）──
+-- anon_chart_rate 增加匿名归属列，使「六表删除」能按匿名 ID 覆盖
+ALTER TABLE anon_chart_rate ADD COLUMN IF NOT EXISTS anon_id VARCHAR(64);
+CREATE INDEX IF NOT EXISTS idx_anon_chart_rate_anon ON anon_chart_rate(anon_id) WHERE anon_id IS NOT NULL;
+
+-- 游客匿名 ID ↔ 注册用户映射（合并与一键删除双条件）
+CREATE TABLE IF NOT EXISTS user_anon_link (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  anon_id VARCHAR(64) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, anon_id)
+);
+CREATE INDEX IF NOT EXISTS idx_anonlink_anon ON user_anon_link(anon_id);
+
+-- 同意记录（PIPL 第14条 明示同意，R2-5）
+CREATE TABLE IF NOT EXISTS user_agreements (
+  id         BIGSERIAL PRIMARY KEY,
+  user_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type       VARCHAR(24) NOT NULL DEFAULT 'terms',  -- terms（用户协议） | privacy（隐私政策）
+  version    VARCHAR(16) NOT NULL DEFAULT '6.3.0',
+  agreed_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_user_agreements_user ON user_agreements(user_id);
+
+-- ── R3 · 业务埋点单表（G1 可观测 / 漏斗）。action 走白名单，payload 存任意扩展字段 ──
+CREATE TABLE IF NOT EXISTS events (
+  id         BIGSERIAL PRIMARY KEY,
+  action     VARCHAR(48) NOT NULL,
+  payload    JSONB,
+  user_id    BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  anon_id    VARCHAR(64),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_events_action_time ON events(action, created_at);
+CREATE INDEX IF NOT EXISTS idx_events_anon ON events(anon_id) WHERE anon_id IS NOT NULL;
+
+-- ── 孤儿数据 TTL 清理（V2 硬门槛：user_id IS NULL AND created_at < now()-30d）──
+-- 生产由 cron 调用 tools/cleanup-orphans.mjs；此处仅保证 schema 支持。
+-- charts / conversations / messages / fortune_events 已含 user_id 可空 + created_at。
+

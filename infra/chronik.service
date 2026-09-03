@@ -1,0 +1,41 @@
+# 辰箓 (Chronik) · systemd 服务单元
+#
+# 安装与启用（需 root）：
+#   cp infra/chronik.service /etc/systemd/system/chronik.service
+#   systemctl daemon-reload && systemctl enable --now chronik
+#
+# 查看状态：  systemctl status chronik
+# 查看日志：  journalctl -u chronik -f
+#
+# 说明：
+#   - WorkingDirectory 指向应用根目录（含 server.js / lib / public）。
+#   - EnvironmentFile 提供全部运行时变量（PGHOST/PGPORT/PGUSER/PGPASSWORD/
+#     PGDATABASE/PORT/ICP_NO 及 LLM 预设）；变量逐行 KEY=VALUE，勿加引号包裹值。
+#   - Restart=on-failure 保证进程异常退出后自动拉起。
+#   - AppVersion/Commit 可由部署脚本经环境变量 APP_VERSION/APP_COMMIT 覆盖，
+#     供 /api/health 校验「线上 == HEAD」。
+
+[Unit]
+Description=辰箓 Chronik (bazi-system) web service
+After=network.target postgresql.service
+Wants=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/chronik
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=3
+EnvironmentFile=/opt/chronik/.env
+# 可选：部署时由 tools/deploy.mjs 注入版本与 commit，便于 /api/health 校验
+# Environment=APP_VERSION=6.3.0
+# Environment=APP_COMMIT=<git-head-sha>
+User=chronik
+Group=chronik
+# 标准输出经 journald 收集，便于排查
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chronik
+
+[Install]
+WantedBy=multi-user.target

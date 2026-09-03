@@ -11,11 +11,40 @@
     messages: [], llmPreset: false, serverBase: '', serverModel: '',
     loadId: new URLSearchParams(location.search).get('load'),
   };
+  // R1† · L3 角色声明（会话首条 + 流式尾注固定展示，不可被模型覆盖）
+  const L3_DISCLAIMER = '我是辰箓命理文化解读助手，仅基于传统命理学说进行文化层面的解读与探讨，不作任何确定性预测，也不提供医疗、法律、投资等专业建议。所有内容仅供娱乐参考。';
+  function ensureL3First() {
+    withEl('chatBody', (cb) => {
+      if (cb.querySelector('.msg.l3') || cb.children.length > 0) return;
+      const el = document.createElement('div');
+      el.className = 'msg l3';
+      el.textContent = '💡 ' + L3_DISCLAIMER;
+      cb.appendChild(el);
+    });
+  }
+  function appendL3Tail() {
+    withEl('chatBody', (cb) => {
+      const el = document.createElement('div');
+      el.className = 'l3-tail';
+      el.textContent = '— 命理仅供文化娱乐参考，本回复由 AI 生成，不构成任何专业建议 —';
+      cb.appendChild(el);
+      cb.scrollTop = cb.scrollHeight;
+    });
+  }
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const md = (text) => {
     try { return DOMPurify.sanitize(marked.parse(text || '')); }
     catch { return esc(text); }
   };
+  // R3 · 业务埋点：单端点上报（静默失败，绝不阻断主流程）
+  function trackEvent(action, payload) {
+    try {
+      fetch('/api/track', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload: payload || {} }), keepalive: true,
+      });
+    } catch (e) { /* 埋点失败不阻断业务 */ }
+  }
 
   function init() {
     try {
@@ -89,7 +118,8 @@
       }).catch(() => {});
       fetch('/api/config').then((r) => r.ok ? r.json() : null).then((d) => {
         if (!d) return;
-        state.adminConfigured = !!d.adminConfigured;
+        state.adminConfigured = !!d.llmPreset; // R10a：字段改名，模型就绪判定不变
+        const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '备案号待填';
         refreshLlm();
       }).catch(() => {});
 
@@ -119,6 +149,8 @@
           const loaded = await loadConversation(data.id);
           if (!loaded) addMsg('ai', `已为你排出命盘：${data.chart.pillars.join(' ')}，日主 ${data.chart.dayMaster}。\n可就事业、感情、财运、健康或近期流月继续追问。`);
           withEl('status', (s) => { s.textContent = '✅ 报告已生成并保存'; });
+          trackEvent('chart_done', { chartId: data.id });
+          trackEvent('report_viewed', { chartId: data.id });
           if (data.guest) withEl('btnSaveAccount', (e) => { e.style.display = ''; });
           switchPane('report');
           loadRecent();
@@ -149,6 +181,15 @@
 
       // 聊天 send（Markdown）
       withEl('btnSend', (b) => { b.onclick = send; });
+      // R1-5 · 页脚举报入口
+      withEl('reportBtn', (b) => { b.onclick = async () => {
+        const detail = (window.prompt && window.prompt('如本平台内容存在违规或不适，请描述（将匿名提交给运营核查）：')) || '';
+        if (!detail.trim()) return;
+        try {
+          const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ detail: detail.trim(), target: 'ai' }) });
+          window.alert(r.ok ? '已收到您的举报，感谢反馈 🙏' : '提交失败，请稍后再试');
+        } catch { window.alert('提交失败，请稍后再试'); }
+      }; });
       withEl('chatText', (t) => { t.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }); });
 
       loadRecent();
@@ -220,6 +261,7 @@
     if (!state.adminConfigured) { withEl('status', (s) => { s.textContent = '⚠️ 模型未配置，请联系管理员在后台设置'; }); return; }
     if (!state.chartContext) { withEl('status', (s) => { s.textContent = '⚠️ 请先推演命盘'; }); return; }
 
+    if (!state.conversationId) ensureL3First(); // R1† · L3 会话首条
     addMsg('user', text);
     textEl.value = '';
     // 5.2：只传最新一条 user 消息 + 会话/命盘上下文；历史由服务端从 DB 拼装
@@ -238,6 +280,7 @@
     };
 
     let aiEl = null;
+    let aiContent = null;
     let acc = '';
     let firstByteSeen = false;
     const ctrl = new AbortController();
@@ -297,6 +340,8 @@
           // 首字节抵达：移除 thinking，启正式 ai bubble
           removeThinkingBubble();
           aiEl = addMsg('ai', '');
+          aiEl.innerHTML = '<div class="ai-gen-badge">🤖 AI 生成 · 仅供娱乐参考</div><div class="ai-content"></div>';
+          aiContent = aiEl.querySelector('.ai-content');
           setLlmStatus('正在生成…');
         }
         buf += dec.decode(value, { stream: true });
@@ -308,22 +353,51 @@
             const j = JSON.parse(p);
             if (j.text) {
               acc += j.text;
-              if (aiEl) { aiEl.innerHTML = md(acc); withEl('chatBody', (cb) => { cb.scrollTop = cb.scrollHeight; }); }
+              if (aiContent) { aiContent.innerHTML = md(acc); withEl('chatBody', (cb) => { cb.scrollTop = cb.scrollHeight; }); }
+            }
+            if (j.fallback) {
+              // R5a · 检索式兜底卡片：渲染命盘相关内容 + L2 免责 + 重试按钮
+              removeThinkingBubble();
+              if (!aiEl) { aiEl = addMsg('ai', ''); aiEl.innerHTML = '<div class="ai-gen-badge">🤖 AI 生成 · 仅供娱乐参考</div><div class="ai-content"></div>'; aiContent = aiEl.querySelector('.ai-content'); }
+              const card = document.createElement('div'); card.className = 'fallback-card';
+              card.innerHTML = md(j.card || '');
+              if (j.disclaimer) { const d = document.createElement('div'); d.className = 'l3-tail'; d.textContent = j.disclaimer; card.appendChild(d); }
+              const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn-retry'; retry.textContent = '🔄 重试';
+              retry.onclick = () => {
+                if (aiEl && aiEl.parentNode) {
+                  const prev = aiEl.previousElementSibling;
+                  aiEl.parentNode.removeChild(aiEl);
+                  if (prev && prev.classList.contains('user')) prev.parentNode.removeChild(prev);
+                }
+                const t = $('chatText'); if (t) t.value = text;
+                send();
+              };
+              card.appendChild(retry);
+              if (aiContent) { aiContent.innerHTML = ''; aiContent.appendChild(card); }
+              clearTimeout(firstByteTimer);
+              clearTimeout(slowHintTimer);
+              setLlmStatus('已切换检索式兜底');
+              trackEvent('ai_q_fail', { reason: 'fallback' }); // R3 · 降级视为失败
+              return;
             }
             if (j.error) {
               removeThinkingBubble();
-              if (!aiEl) aiEl = addMsg('ai', '⚠️ ' + j.error, false);
-              else aiEl.textContent = '⚠️ ' + j.error;
+              if (!aiEl) { aiEl = addMsg('ai', ''); aiEl.innerHTML = '<div class="ai-gen-badge">🤖 AI 生成 · 仅供娱乐参考</div><div class="ai-content"></div>'; aiContent = aiEl.querySelector('.ai-content'); }
+              if (j.blocked) appendL3Tail();
+              if (aiContent) aiContent.textContent = '⚠️ ' + j.error;
               clearTimeout(firstByteTimer);
               clearTimeout(slowHintTimer);
+              trackEvent('ai_q_fail', { reason: j.error || 'error' }); // R3 · 对话失败
               return;
             }
           } catch {}
         }
       }
       // 流正常结束
-      if (aiEl) aiEl.innerHTML = md(acc);
+      if (aiContent) aiContent.innerHTML = md(acc);
       if (!aiEl) removeThinkingBubble();
+      if (acc) appendL3Tail(); // R1† · 流式尾注（固定，不可被模型覆盖）
+      if (acc && !state.aiTracked) { state.aiTracked = true; trackEvent('ai_first_q', {}); } // R3 · 首问成功
       setLlmStatus(acc ? '已接收答复' : '');
     } catch (e) {
       if (e.name === 'AbortError') {
@@ -439,14 +513,17 @@
         const username = (($('aRUser') || {}).value || '').trim();
         const nickname = (($('aRNick') || {}).value || '').trim();
         const password = (($('aRPwd') || {}).value || '');
+        const consent = !!($('aRConsent') || {}).checked;
         if (!username || !password) { if (status) status.textContent = '⚠️ 用户名与密码必填'; return; }
         if (password.length < 6) { if (status) status.textContent = '⚠️ 密码至少 6 位'; return; }
-        const r = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, nickname, password }) });
+        if (!$('aRConsent') || !consent) { if (status) status.textContent = '⚠️ 请先勾选同意《隐私政策》与《用户协议》'; return; }
+        const r = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, nickname, password, consent: true }) });
         const d = await r.json().catch(() => ({}));
         if (!r.ok) { if (status) status.textContent = '⚠️ ' + (d.error || '注册失败'); return; }
         user = d.user; merged = d.merged || 0;
       }
       applyLoggedInUI(user);
+      if (kind === 'reg') trackEvent('anon_to_signup', { merged }); // R3 · 游客→注册
       closeAuth();
       loadRecent();
       refreshLlm();

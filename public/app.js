@@ -41,9 +41,8 @@
   // ── 服务端模型预设（密钥在服务端，前端不接触） ──
   fetch('/api/config').then((r) => r.json()).then((d) => {
     state.llmPreset = !!d.llmPreset;
-    state.serverBase = d.baseUrl || '';
-    state.serverModel = d.model || '';
     refreshLlmStatus();
+    const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '备案号待填';
   }).catch(() => {});
 
   // ── 设置抽屉 ──

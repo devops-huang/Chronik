@@ -102,3 +102,16 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100% }
 @media(max-width:420px){
   .nav-links a{padding:5px 9px; font-size:12px; letter-spacing:1px}
 }
+
+/* R6† · 本月流月常驻卡 */
+.liuyue-card{margin-top:16px}
+.liuyue-card .ly-row{display:flex;align-items:center;gap:12px;margin:6px 0 10px}
+.liuyue-card .ly-verdict{display:inline-block;padding:4px 14px;border-radius:999px;font-weight:700;font-size:14px}
+.liuyue-card .ly-desc{color:var(--ink-dim);font-size:13px}
+.liuyue-card .ly-hl{font-size:13.5px;line-height:1.7;color:var(--ink)}
+.liuyue-card .ly-rng{margin-top:10px;font-size:12px;color:var(--ink-dim)}
+.liuyue-card .ly-rng a{color:var(--gold)}
+.liuyue-card .ly-dis{margin-top:8px;font-size:11px;color:var(--jade);opacity:.85}
+.liuyue-card .v-good{background:rgba(95,208,192,.16);color:var(--jade)}
+.liuyue-card .v-mid{background:rgba(232,201,138,.16);color:var(--gold-bright)}
+.liuyue-card .v-warn{background:rgba(216,115,95,.16);color:var(--red)}

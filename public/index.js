@@ -3,6 +3,15 @@
   const $ = (id) => document.getElementById(id);
   const withEl = (id, fn) => { const el = $(id); if (!el) { console.warn('[index] missing #' + id); return; } fn(el); };
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // R3 · 业务埋点：单端点上报（静默失败，绝不阻断主流程）
+  function trackEvent(action, payload) {
+    try {
+      fetch('/api/track', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload: payload || {} }), keepalive: true,
+      });
+    } catch (e) { /* 埋点失败不阻断业务 */ }
+  }
 
   let view = { y: 0, m: 0 }; // 当前查看的年月
   let wxChart = null;
@@ -74,6 +83,9 @@
   }
 
   async function load() {
+    const ref = new URLSearchParams(location.search).get('ref')
+      || (document.referrer ? new URL(document.referrer).host : 'direct');
+    trackEvent('page_view', { ref }); // R3 · 首访带来源
     state.pos = await resolvePosition();
     await reload();
   }
@@ -88,6 +100,7 @@
       view = { y: Number(d.today.split('-')[0]), m: Number(d.today.split('-')[1]) };
       render(d);
       loadRecent();
+      loadLiuyueCard(); // R6† · 常驻「本月流月吉凶」卡
     } catch (e) {
       withEl('dash', (e) => { e.innerHTML = '<div class="loading">网络异常，请刷新</div>'; });
     }
@@ -437,6 +450,36 @@
           el.onclick = () => { location.href = `/studio.html?load=${el.dataset.id}`; };
         });
       });
+    } catch (e) {}
+  }
+
+  // R6† · 常驻「本月流月吉凶」卡：取最近命盘的当前流月（按 today 落在区间内）
+  async function loadLiuyueCard() {
+    try {
+      const lr = await fetch('/api/charts');
+      const list = lr.ok ? await lr.json() : null;
+      const first = list?.charts?.[0];
+      const box = document.getElementById('liuyueCard');
+      if (!box) return;
+      if (!first) { box.innerHTML = ''; return; }
+      const cr = await fetch('/api/charts/' + first.id);
+      const data = cr.ok ? await cr.json() : null;
+      const months = data?.interpret?.allMonths || [];
+      const today = new Date().toISOString().slice(0, 10);
+      const cur = months.find((m) => m.start <= today && today <= m.end) || months.find((m) => m.end >= today) || months[0];
+      if (!cur) { box.innerHTML = ''; return; }
+      const vc = { good: 'v-good', mid: 'v-mid', warn: 'v-warn' }[cur.verdict?.cls] || 'v-mid';
+      box.innerHTML = `
+        <section class="card liuyue-card fadeup">
+          <h3><span class="ic">🌙</span>本月流月 · ${esc(cur.ganzhi)}</h3>
+          <div class="ly-row">
+            <span class="ly-verdict ${vc}">${esc(cur.verdict?.label || '平')}</span>
+            <span class="ly-desc">${esc(cur.verdict?.desc || '')}</span>
+          </div>
+          <div class="ly-hl">${esc(cur.headline || '')}</div>
+          <div class="ly-rng">${esc(cur.start || '')} ~ ${esc(cur.end || '')}　·　<a href="/nianli.html">查看全年流月 →</a></div>
+          <div class="ly-dis">AI 生成 · 仅供娱乐参考</div>
+        </section>`;
     } catch (e) {}
   }
 
