@@ -830,7 +830,7 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, {
         llmPreset: !!(process.env.LLM_BASE_URL && process.env.LLM_API_KEY && process.env.LLM_MODEL),
         appName: '辰箓',
-        icpNo: process.env.ICP_NO || '备案号待填',
+        icpNo: process.env.ICP_NO || '域名备案中 · 暂以 IP 访问',
       });
     }
     if (req.method === 'GET' && url === '/api/cities') return sendJson(res, 200, { cities: listAllCities() });

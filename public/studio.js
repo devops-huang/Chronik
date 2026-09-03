@@ -119,7 +119,7 @@
       fetch('/api/config').then((r) => r.ok ? r.json() : null).then((d) => {
         if (!d) return;
         state.adminConfigured = !!d.llmPreset; // R10a：字段改名，模型就绪判定不变
-        const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '备案号待填';
+        const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '域名备案中 · 暂以 IP 访问';
         refreshLlm();
       }).catch(() => {});
 

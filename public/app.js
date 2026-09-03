@@ -42,7 +42,7 @@
   fetch('/api/config').then((r) => r.json()).then((d) => {
     state.llmPreset = !!d.llmPreset;
     refreshLlmStatus();
-    const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '备案号待填';
+    const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '域名备案中 · 暂以 IP 访问';
   }).catch(() => {});
 
   // ── 设置抽屉 ──
