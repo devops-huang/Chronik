@@ -99,6 +99,48 @@
     const yi = (f.yi || []).join('、') || '—';
     const ji = (f.ji || []).join('、') || '—';
     const wxIcon = weatherIcon(w?.code);
+
+    // 5.3 四元個性化運勢：有命盤時展示四維度 + 推導依據；
+    // 無命盤（personal 為 null，例如未填生日）時降級為通用文案，不會報錯。
+    const p = f.personal;
+    const dimRow = (label, it) => `
+              <div class="pft-dim">
+                <div class="pft-dim-head">
+                  <span class="pft-dlab">${label}</span>
+                  <span class="pft-bar"><i style="width:${it.score}%"></i></span>
+                  <span class="pft-dnum">${it.score}</span>
+                </div>
+                <div class="pft-dtext">${esc(it.text)}</div>
+              </div>`;
+    const personalBlock = p ? `
+            <div class="pft-top">
+              <div class="pft-score">
+                <span class="pft-num">${p.score}</span>
+                <span class="pft-tier">${esc(p.tier)}</span>
+              </div>
+              <div class="pft-meta">
+                <span class="rel-tag">${esc(p.dayStar)}當值</span>
+                <div class="pft-sub">${esc(p.strength)} · 喜${esc((p.like || []).join('、'))} · 忌${esc((p.dislike || []).join('、'))}</div>
+              </div>
+            </div>
+            <div class="pft-dims">
+              ${dimRow('事業', p.items.career)}
+              ${dimRow('財', p.items.wealth)}
+              ${dimRow('感情', p.items.love)}
+              ${dimRow('健康', p.items.health)}
+            </div>
+            <div class="pft-tips">
+              <div class="pft-tip"><b class="yi-c">宜</b><span>${esc(p.do.text)}</span></div>
+              <div class="pft-tip"><b class="ji-c">忌</b><span>${esc(p.avoid.text)}</span></div>
+            </div>
+            <button class="pft-why-btn" id="btnWhy" aria-expanded="false">為什麼這麼算 ▾</button>
+            <div class="pft-why" id="whyBox" hidden>${esc(p.why.text)}</div>
+            ` : `
+            <div><span class="rel-tag">${esc(f.fortune.relation)}日</span></div>
+            <div class="fortune-head">${esc(f.fortune.headline)}</div>
+            <div class="pft-nonatal hint">補全出生日期並排盤後，即可解鎖專屬於你命盤的四維運勢</div>
+            `;
+
     withEl('dash', (container) => {
       container.className = '';
       container.innerHTML = `
@@ -109,8 +151,7 @@
               <span class="gz">${esc(f.ganzhi)}</span>
               <span class="el">${esc(f.lunarText)}</span>
             </div>
-            <div><span class="rel-tag">${esc(f.fortune.relation)}日</span></div>
-            <div class="fortune-head">${esc(f.fortune.headline)}</div>
+            ${personalBlock}
             <div class="yi-ji">
               <div class="col"><div class="lab yi">宜</div><div class="v">${esc(yi)}</div></div>
               <div class="col"><div class="lab ji">忌</div><div class="v">${esc(ji)}</div></div>
@@ -278,6 +319,17 @@
     withEl('calNext', (b) => { b.onclick = () => navigate(1); });
     withEl('btnRelocate', (b) => { b.onclick = () => doRelocate(); });
     renderHours(f.hours);
+    // 5.3：展開「為什麼」並上報埋點（驅動指標 = 展開人數 / 曝光人數）
+    withEl('btnWhy', (btn) => {
+      btn.onclick = () => {
+        const box = $('whyBox'); if (!box) return;
+        const open = box.hidden;
+        box.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+        btn.textContent = open ? '為什麼這麼算 ▴' : '為什麼這麼算 ▾';
+        if (open) fetch('/api/fortune/expand', { method: 'POST' }).catch(() => {});
+      };
+    });
     withEl('btnDraw', (b) => { b.onclick = () => drawOmen(); });
     updateLocUI(state.pos, w);
     if (w && !w.error && window.echarts) drawWeather(w);

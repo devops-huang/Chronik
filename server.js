@@ -19,6 +19,7 @@ import {
 import { computeAll, chartContextText } from './lib/core.js';
 import { listAllCities, resolveLocation } from './lib/chart.js';
 import { buildMonthGrid, buildTodayFortune, getWeather, getWeatherByLatLon, todayInShanghai } from './lib/home.js';
+import { deriveNatalFromBirth } from './lib/fortuneEngine.js';
 import { loadLlmConfig, saveLlmConfig, maskKey } from './lib/llmConfig.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -141,7 +142,16 @@ async function handleHome(req, res) {
   const { dateStr } = todayInShanghai();
   const [y, m] = dateStr.split('-').map(Number);
   const monthGrid = buildMonthGrid(y, m, dateStr);
-  const fortune = buildTodayFortune(user.day_master ? { dayMasterElement: user.day_master } : null, dateStr);
+  // 5.3：四元运势需要「日主天干 + 月令地支」。二者只由出生日期决定（与时辰无关），
+  // 因此没填时辰、没排过盘的用户同样可以个性化：优先读已存字段，缺失则由出生日期现算并回填。
+  let natal = (user.day_stem && user.month_zhi)
+    ? { dayStem: user.day_stem, monthZhi: user.month_zhi, gender: user.gender }
+    : deriveNatalFromBirth(user.birth_date, user.birth_calendar);
+  if (natal && !user.day_stem) {
+    updateProfile(user.id, { day_stem: natal.dayStem, month_zhi: natal.monthZhi }).catch(() => {});
+  }
+  const fortune = buildTodayFortune(
+    user.day_master ? { dayMasterElement: user.day_master } : null, dateStr, natal);
   // 优先用前端传来的经纬度（当前定位），否则回退用户城市 / 北京
   const u = new URL(req.url, 'http://x');
   const lat = u.searchParams.get('lat'), lon = u.searchParams.get('lon');
@@ -158,6 +168,22 @@ async function handleHome(req, res) {
     monthGrid, monthLabel: `${y}年${m}月`,
     fortune, weather,
   });
+}
+
+/**
+ * 5.3 埋点：记录「运势卡片展开为什么」。
+ * 驱动指标 = 展开「为什么」的人数 / 运势卡片曝光人数。
+ * 埋点失败不应影响用户使用，故数据库异常也返回 200。
+ */
+async function handleFortuneExpand(req, res) {
+  const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
+  try {
+    await query(
+      `INSERT INTO fortune_events (user_id, anon_id, action) VALUES ($1,$2,'expand_why')`,
+      [ctx.isGuest ? null : ctx.user.id, ctx.isGuest ? ctx.anonId : null]
+    );
+  } catch { /* 埋点失败静默忽略 */ }
+  sendJson(res, 200, { ok: true });
 }
 
 // ── 万年历指定月份网格（无需鉴权，纯历法） ──
@@ -223,6 +249,9 @@ async function handleChart(req, res) {
         patch.birth_date = body.date; patch.birth_time = body.time || null; patch.birth_location = body.location || null;
       }
       patch.day_master = out.chart.dayMaster ? elementOfDayMaster(out.chart.dayMaster) : ctx.user.day_master;
+      // 5.3：四元运势所需。pillars 顺序为 年/月/日/时，故 pillars[1][1] 即月令地支
+      if (out.chart.dayMaster) patch.day_stem = out.chart.dayMaster;
+      if (out.chart.pillars?.[1]?.[1]) patch.month_zhi = out.chart.pillars[1][1];
       await updateProfile(ctx.user.id, patch).catch(() => {});
     }
     sendJson(res, 200, { ...slim, guest: ctx.isGuest, id: chartId });
@@ -561,6 +590,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && url === '/api/auth/logout') return await handleLogout(req, res);
     if (req.method === 'GET' && url === '/api/auth/me') return await handleMe(req, res);
     if (req.method === 'GET' && url === '/api/home') return await handleHome(req, res);
+    if (req.method === 'POST' && url === '/api/fortune/expand') return await handleFortuneExpand(req, res);
     if (req.method === 'GET' && url === '/api/calendar') return await handleCalendar(req, res);
     if (req.method === 'POST' && url === '/api/chart') return await handleChart(req, res);
     if (req.method === 'GET' && url === '/api/conversations') return await handleConversationsList(req, res);

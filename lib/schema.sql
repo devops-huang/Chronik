@@ -80,3 +80,21 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at ASC);
+
+-- ── 今日运势真个性化（5.3）──
+-- 四元引擎需要「日主天干 + 月令地支」。二者只由出生日期决定（与时辰无关），
+-- 因此未填时辰、未排过盘的用户也可由 birth_date 现算并回填，不必强制先排盘。
+ALTER TABLE users ADD COLUMN IF NOT EXISTS day_stem  VARCHAR(4);  -- 日主天干（甲…癸）
+ALTER TABLE users ADD COLUMN IF NOT EXISTS month_zhi VARCHAR(4);  -- 月令地支（子…亥）
+
+-- 「为什么」展开率埋点（驱动指标：运势卡片展开「为什么」的比例）
+-- 游客无 user_id，故保留 anon_id；按天 + 动作聚合即可算出展开率。
+CREATE TABLE IF NOT EXISTS fortune_events (
+  id         BIGSERIAL PRIMARY KEY,
+  user_id    BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  anon_id    VARCHAR(64),
+  day        DATE NOT NULL DEFAULT (now()::date),
+  action     VARCHAR(32) NOT NULL,             -- 'expand_why'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_fortune_events_day ON fortune_events(day, action);
