@@ -6,11 +6,15 @@
   --shadow:0 10px 40px rgba(0,0,0,.45);
   --r:14px;
 
-  /* 玄学体系：毛笔字体优先，楷书兜底；英文装饰衬线 */
-  --font-cn:'Ma Shan Zheng','ZCOOL XiaoWei','STKaiti','KaiTi','楷体','Songti SC','SimSun',serif;
-  --font-serif:'Noto Serif SC','Songti SC','SimSun',serif;
+  /* 字体策略：CJK 改走系统字体栈（不再拉取外网 Noto Serif SC / Ma Shan Zheng，断外网依赖、消除字体回退闪烁）；
+     英文装饰衬线 Cinzel / Cormorant 已本地子集化托管于 /vendor/fonts/（见下方 @font-face） */
+  --font-cn:'STKaiti','KaiTi','楷体','Songti SC','SimSun',serif;
+  --font-serif:'Songti SC','STSong','SimSun',serif;
   --font-en:'Cinzel','Cormorant Garamond','Times New Roman',serif;
 }
+/* 本地托管的英文装饰衬线（basic-latin 子集，约 22KB；font-display:swap 避免阻塞渲染） */
+@font-face{font-family:'Cinzel';src:url('/vendor/fonts/cinzel.woff2') format('woff2');font-display:swap;font-weight:400 700;font-style:normal}
+@font-face{font-family:'Cormorant Garamond';src:url('/vendor/fonts/cormorant.woff2') format('woff2');font-display:swap;font-weight:400 600;font-style:normal}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:
   radial-gradient(1200px 700px at 75% -10%, rgba(95,208,192,.10), transparent 60%),

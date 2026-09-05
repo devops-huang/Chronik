@@ -22,14 +22,14 @@
   .year-card .ymeta{color:var(--ink-dim);font-size:13px;margin-top:4px}
   .year-verdict{display:inline-block;margin-top:10px;padding:5px 14px;border-radius:999px;font-weight:700;font-size:14px}
   /* 流月网格 */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
   .mc{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
     border-radius:var(--r);padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
   .mc .gan{font-family:var(--font-cn);font-size:22px;color:var(--gold-bright);letter-spacing:2px}
-  .mc .rng{color:var(--ink-dim);font-size:11.5px;margin:5px 0 10px}
+  .mc .rng{color:var(--ink-dim);font-size:11.5px;margin:5px 0 10px;overflow-wrap:anywhere}
   .mc .vb{position:absolute;top:0;right:0;width:6px;height:100%}
   .mc .vl{display:inline-block;padding:3px 11px;border-radius:999px;font-weight:700;font-size:12.5px;margin-bottom:9px}
-  .mc .hl{font-size:13px;line-height:1.65;color:var(--ink)}
+  .mc .hl{font-size:13px;line-height:1.65;color:var(--ink);overflow-wrap:anywhere}
   .mc .shen{margin-top:9px;font-size:11.5px;color:var(--ink-dim)}
   .mc .rel{margin-top:5px;font-size:11.5px;color:var(--purple)}
   /* verdict 配色：good=吉/mid=平/warn=防 */
@@ -62,7 +62,7 @@
   </div>
 </nav>
 
-<div class="wrap">
+<main class="wrap">
   <div class="page-head">
     <div>
       <h1>流年 · 流月运势</h1>
@@ -83,7 +83,7 @@
   <div class="footer-note">
     <span id="icp-no">域名备案中 · 暂以 IP 访问</span> · <a href="/privacy.html">隐私政策</a>
   </div>
-</div>
+</main>
 
 <script type="module" src="/nianli.js"></script>
 </body>

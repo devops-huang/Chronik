@@ -53,6 +53,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png',
+  '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf',
 };
 
 // P0 · 响应级 gzip：仅压缩文本类且非 SSE 的响应（SSE 流式由客户端/上游超时自然结束，不压缩）
@@ -92,11 +93,12 @@ function applySecurityHeaders(res) {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; img-src 'self' data:; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.cn https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.cn https://fonts.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "font-src 'self'; " +
     "script-src 'self' 'unsafe-inline'; " +
     "connect-src 'self' https://ipwho.is; " +
-    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; " +
+    "report-uri /api/csp-report"
   );
 }
 function readBody(req, limit = 2 * 1024 * 1024) {
@@ -785,6 +787,18 @@ async function handleTrack(req, res) {
   sendJson(res, 200, { ok: true });
 }
 
+// ── CSP 违规上报（仅落日志，便于观察是否仍有被拦资源；不落库避免被滥用）──
+async function handleCspReport(req, res) {
+  let body;
+  try { body = await readBody(req, 16 * 1024); } catch { res.writeHead(400); res.end(); return; }
+  const rep = (body && typeof body === 'object') ? (body['csp-report'] || body) : null;
+  if (rep) {
+    console.warn('[csp-report] document=%s | directive=%s | blocked=%s',
+      rep['document-uri'] || '-', rep['violated-directive'] || '-', rep['blocked-uri'] || '-');
+  }
+  res.writeHead(204); res.end();
+}
+
 // ── 数据权利：导出 / 一键删除（R2† · V1 数据权利闭环 / V2 孤儿删除完整性）──
 async function handleExport(req, res) {
   const user = await getUserFromRequest(req);
@@ -881,6 +895,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && url === '/api/auth/reset/confirm') return await handleResetConfirm(req, res);
     if (req.method === 'POST' && url === '/api/report') return await handleReport(req, res);
     if (req.method === 'POST' && url === '/api/track') return await handleTrack(req, res);
+    if (req.method === 'POST' && url === '/api/csp-report') return await handleCspReport(req, res);
     if (req.method === 'POST' && url === '/api/me/export') return await handleExport(req, res);
     if (req.method === 'POST' && url === '/api/me/delete') return await handleDelete(req, res);
     if (req.method === 'GET' && url === '/api/home') return await handleHome(req, res);
