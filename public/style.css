@@ -15,6 +15,9 @@
 /* 本地托管的英文装饰衬线（basic-latin 子集，约 22KB；font-display:swap 避免阻塞渲染） */
 @font-face{font-family:'Cinzel';src:url('/vendor/fonts/cinzel.woff2') format('woff2');font-display:swap;font-weight:400 700;font-style:normal}
 @font-face{font-family:'Cormorant Garamond';src:url('/vendor/fonts/cormorant.woff2') format('woff2');font-display:swap;font-weight:400 600;font-style:normal}
+/* 招牌签名：自托管毛笔体 Ma Shan Zheng——仅子集「辰」（该字体字库不含「箓」，按原始设计回退系统楷体，与 macOS 表现一致）；font-display:swap 不阻塞渲染 */
+@font-face{font-family:'Ma Shan Zheng';src:url('/vendor/fonts/mashan.woff2') format('woff2');font-display:swap;font-weight:400;font-style:normal}
+.brand .cn, .seal-name{font-family:'Ma Shan Zheng', var(--font-cn);}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:
   radial-gradient(1200px 700px at 75% -10%, rgba(95,208,192,.10), transparent 60%),
