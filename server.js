@@ -9,6 +9,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { gzipSync } from 'node:zlib';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -54,15 +55,32 @@ const MIME = {
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png',
 };
 
+// P0 · 响应级 gzip：仅压缩文本类且非 SSE 的响应（SSE 流式由客户端/上游超时自然结束，不压缩）
+const COMPRESSIBLE_RE = /^(text\/html|text\/css|text\/javascript|application\/javascript|application\/json|text\/xml|application\/xml|image\/svg\+xml|text\/plain)/i;
+function maybeGzip(res, contentType, body) {
+  const ae = res.req && res.req.headers && res.req.headers['accept-encoding'];
+  if (typeof ae !== 'string' || !ae.includes('gzip')) return body;
+  if (!COMPRESSIBLE_RE.test(contentType) || /event-stream/i.test(contentType)) return body;
+  try {
+    const buf = Buffer.isBuffer(body) ? body : Buffer.from(String(body), 'utf8');
+    const out = gzipSync(buf);
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Vary', 'Accept-Encoding');
+    return out;
+  } catch { return body; }
+}
+
 function sendJson(res, code, obj) {
   applySecurityHeaders(res);
+  const out = maybeGzip(res, 'application/json; charset=utf-8', Buffer.from(JSON.stringify(obj), 'utf8'));
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(obj));
+  res.end(out);
 }
 function sendText(res, code, text) {
   applySecurityHeaders(res);
+  const out = maybeGzip(res, 'text/plain; charset=utf-8', Buffer.from(text, 'utf8'));
   res.writeHead(code, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end(text);
+  res.end(out);
 }
 
 /** R10a · 推广就绪安全头（R10a-2 / V4 基础） */
@@ -104,9 +122,11 @@ async function serveStatic(req, res) {
     const st = await stat(file);
     if (st.isDirectory()) { res.writeHead(403); return res.end('forbidden'); }
     const data = await readFile(file);
+    const mime = MIME[extname(file)] || 'application/octet-stream';
     applySecurityHeaders(res);
-    res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
-    res.end(data);
+    const out = maybeGzip(res, mime, data);
+    res.writeHead(200, { 'Content-Type': mime });
+    res.end(out);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('not found');
@@ -887,3 +907,26 @@ async function main() {
   server.listen(PORT, '0.0.0.0', () => console.log(`辰箓 已启动： http://0.0.0.0:${PORT}`));
 }
 main();
+
+// P1 · 优雅关闭：停止接收新连接，释放 PG 连接池，进行中请求（含 SSE）由客户端/超时自然结束
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log('[%s] 收到关闭信号，开始优雅关闭…', signal);
+  server.close((err) => {
+    if (err) console.error('[shutdown] server.close 异常：', err.message);
+    else console.log('[shutdown] 已停止接收新连接');
+  });
+  try {
+    await pool.end();
+    console.log('[shutdown] PG 连接池已关闭');
+  } catch (e) {
+    console.error('[shutdown] pool.end 异常：', e.message);
+  }
+  // 兜底：statement_timeout(8s) 保证在途查询不会无限挂起；10s 后强制退出
+  const forced = setTimeout(() => { console.log('[shutdown] 超时强制退出'); process.exit(0); }, 10000);
+  forced.unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
