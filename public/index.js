@@ -207,7 +207,7 @@
             <h3><span class="ic">🪞</span>陰陽調和建議</h3>
             <ul class="advice">${(f.advice || []).map((a) => `<li>${esc(a)}</li>`).join('')}</ul>
             <div class="advice-art" aria-hidden="true">
-              <svg viewBox="0 0 600 220" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+              <svg viewBox="0 0 600 220" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color="rgba(232,201,138,.40)"/>
