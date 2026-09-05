@@ -766,7 +766,7 @@ async function handleExport(req, res) {
   const conversations = await rows(`SELECT id, title, chart_id, created_at FROM conversations WHERE user_id=$1 OR anon_id IN (${linkSub}) ORDER BY created_at DESC`, [uid]);
   const messages = await rows(`SELECT m.id, m.conversation_id, m.role, m.content, m.created_at FROM messages m JOIN conversations c ON m.conversation_id=c.id WHERE c.user_id=$1 OR c.anon_id IN (${linkSub}) ORDER BY m.created_at`, [uid]);
   const fortune_events = await rows(`SELECT id, action, created_at FROM fortune_events WHERE user_id=$1 OR anon_id IN (${linkSub}) ORDER BY created_at DESC`, [uid]);
-  const anon_chart_rate = await rows(`SELECT ip, cnt, created_at FROM anon_chart_rate WHERE anon_id IN (${linkSub})`, [uid]);
+  const anon_chart_rate = await rows(`SELECT ip, cnt, window_start AS created_at FROM anon_chart_rate WHERE anon_id IN (${linkSub})`, [uid]);
   const anon_chat_rate = await rows(`SELECT anon_id, rounds FROM anon_chat_rate WHERE anon_id IN (${linkSub})`, [uid]);
   sendJson(res, 200, { user, charts, conversations, messages, fortune_events, anon_chart_rate, anon_chat_rate });
 }

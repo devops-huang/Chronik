@@ -2,12 +2,12 @@
 // 测试对象：R2† 隐私数据权利闭环（游客合并 / 一键删除回执 / 孤儿 30 天 TTL / 导出）
 // 运行：node tools/test-gdpr.mjs
 //   依赖：① 真实 PostgreSQL（从 process.env 或项目根 .env 读 PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE）
-//         ② 应用服务正在运行（POST /api/register、POST /api/me/export、POST /api/me/delete）
+//         ② 应用服务正在运行（POST /api/auth/register、POST /api/me/export、POST /api/me/delete）
 //            地址取 process.env.CHRONIK_BASE_URL，默认 http://127.0.0.1:8787
 // 约束：仅用独立随机测试账号，结束清理，绝不破坏现有数据；失败 process.exit(1)。
 //
 // 说明（重要）：本脚本按 PRD R2† 接口编写，依赖主程实现的接口：
-//   - /api/register 在带 cl_aid 匿名 cookie 注册时，应把该 anon_id 的历史数据并入新账号
+//   - /api/auth/register 在带 cl_aid 匿名 cookie 注册时，应把该 anon_id 的历史数据并入新账号
 //     （lib/auth.js 的 mergeAnonCharts / mergeAnonConversations，并写入 user_anon_link 映射）。
 //   - /api/me/delete 按 `user_id = $1 OR anon_id IN (SELECT anon_id FROM user_anon_link WHERE user_id=$1)`
 //     双条件删六表，返回回执 {charts,conversations,messages,fortune_events,anon_chart_rate,anon_chat_rate}。
@@ -135,7 +135,7 @@ async function main() {
   const N = 1; // 每表 N 条（演示用 1；可改大验证批量）
 
   // 注册：带游客 cookie，触发合并
-  const reg = await http('POST', '/api/register', {
+  const reg = await http('POST', '/api/auth/register', {
     body: { username: TEST_USER, password: TEST_PASS, nickname: 'GDPR', agree: true, consent: true },
     cookie: `cl_aid=${ANON_A}`,
   });
