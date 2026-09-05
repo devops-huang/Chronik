@@ -87,10 +87,10 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100% }
   .brand .en{display:none}
   .nav-links{order:3; width:100%; justify-content:center; gap:4px; padding-top:8px;
     border-top:1px solid var(--line)}
-  .nav-links a{padding:6px 12px; font-size:13px}
+  .nav-links a{padding:10px 12px; font-size:13px; min-height:44px; display:inline-flex; align-items:center}
   .user-menu{gap:8px}
   .user-menu #uname{display:none}
-  #btnLogout{padding:5px 10px; font-size:12px}
+  #btnLogout{padding:8px 14px; font-size:12px; min-height:44px}
 
   /* 推演阁移动端：单列纵向堆叠，表单/对话/报告都可用 */
   .studio{grid-template-columns:1fr !important; height:auto !important}
@@ -104,6 +104,10 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100% }
 }
 
 /* R6† · 本月流月常驻卡 */
+.site-footer{ margin-top:28px; padding:16px 12px; text-align:center; font-size:12px; color:#8a7a5c; line-height:1.7; border-top:1px solid rgba(190,160,90,.18) }
+.site-footer .footer-sep{ margin:0 8px; opacity:.5 }
+.site-footer a{ color:var(--gold-bright); text-decoration:none; padding:4px 8px; min-height:36px; display:inline-block }
+.site-footer a:hover{ text-decoration:underline }
 .liuyue-card{margin-top:16px}
 .liuyue-card .ly-row{display:flex;align-items:center;gap:12px;margin:6px 0 10px}
 .liuyue-card .ly-verdict{display:inline-block;padding:4px 14px;border-radius:999px;font-weight:700;font-size:14px}

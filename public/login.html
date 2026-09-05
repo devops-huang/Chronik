@@ -137,7 +137,7 @@
     pointer-events:none;
   }
   .tabs { display:flex; gap:8px; margin: 6px 0 18px; }
-  .tabs button { flex:1; padding:9px; }
+  .tabs button { flex:1; padding:12px 0; min-height:44px; }
   .tabs button.on { background:var(--gold); color:#1a140a; border-color:var(--gold); font-weight:700; }
 
   #status { font-size:12.5px; min-height:18px; margin-top:10px; text-align:center; }
@@ -149,10 +149,10 @@
   .guest-divider { display:flex; align-items:center; gap:10px; color:var(--ink-dim); font-size:11px; letter-spacing:4px; margin:16px 0 10px; }
   .guest-divider::before, .guest-divider::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); }
   .ghost {
-    width:100%; padding:11px; font-size:14px; letter-spacing:2px;
+    width:100%; padding:13px; font-size:14px; letter-spacing:2px;
     background:transparent; color:var(--gold-bright);
     border:1px solid var(--gold); border-radius:12px; cursor:pointer;
-    font-family:var(--font-cn); transition:.2s;
+    font-family:var(--font-cn); transition:.2s; min-height:44px;
   }
   .ghost:hover { background:rgba(232,201,138,.12); box-shadow:0 0 20px rgba(232,201,138,.25); }
   .ghost:focus-visible { outline:2px solid var(--gold-bright); outline-offset:2px; }
