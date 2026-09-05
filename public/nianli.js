@@ -4,10 +4,10 @@ import { DISCLAIMER_L1, isBlocked } from '/content-policy.js';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// R3 · 轻量埋点（与 studio/index 同源 trackEvent 契约：POST /api/track {name,props}）
+// R3 · 轻量埋点（与 index.js 同源 trackEvent 契约：POST /api/track {action,payload}）
 function trackEvent(name, props = {}) {
   try {
-    const body = JSON.stringify({ name, props });
+    const body = JSON.stringify({ action: name, payload: props });
     if (navigator.sendBeacon) navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
     else fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {});
   } catch {}

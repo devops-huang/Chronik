@@ -107,7 +107,7 @@
   }
 
   function render(d) {
-    withEl('heroDate', (e) => { e.textContent = `${d.monthLabel} · ${d.today} ${d.fortune.weekday} · 天機流轉`; });
+    withEl('heroDate', (e) => { e.textContent = `${d.monthLabel} · ${d.today} ${d.fortune.weekday} · 天机流转`; });
     const f = d.fortune, w = d.weather;
     const yi = (f.yi || []).join('、') || '—';
     const ji = (f.ji || []).join('、') || '—';
@@ -403,7 +403,7 @@
         + grid.map((c) => `<div class="cal-cell ${c.inMonth ? '' : 'out'} ${c.isToday ? 'today' : ''}" data-ymd="${c.ymd}">
           <div class="d">${Number(c.ymd.split('-')[2])}</div>
           <div class="gz">${esc(c.ganzhi)}</div>
-          <div class="lu">${esc(c.lunarText.replace(/^\\D+年/, '').replace('月', '·').replace('日', ''))}</div>
+          <div class="lu" title="${esc(c.lunarText)}">${esc(c.lunarText.replace(/年.*?月/, '').replace('日', ''))}</div>
         </div>`).join('');
       g.querySelectorAll('.cal-cell').forEach((el) => {
         el.onclick = () => showDay(el.dataset.ymd, grid.find((c) => c.ymd === el.dataset.ymd));
@@ -507,10 +507,13 @@
   function heroAnim() {
     const cv = $('heroBg'); if (!cv) return;
     const ctx = cv.getContext('2d');
+    // P1 · 尊重 prefers-reduced-motion：直接画一帧后停止 rAF，省电 + 无障碍
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const baseW = () => cv.clientWidth || window.innerWidth;
     const baseH = () => cv.clientHeight || 420;
     let W = 0, H = 0, cx = 0, cy = 0, R = 0, stars = [], goldSparks = [];
     let dpr = window.devicePixelRatio || 1;
+    let rafId = 0;
 
     function resize() {
       W = baseW(); H = baseH();
@@ -545,33 +548,33 @@
       t += 0.0024;
       ctx.clearRect(0, 0, W, H);
       // 三层同心圆（轨道感，不挡字——半径很大在外围，被字覆盖）
-      const rings = [{ r: R * 0.95 }, { r: R * 1.15 }, { r: R * 1.4 }];
+      const rings = [{ r: R * 0.95 }, { r: R * 1.15 }, { r: R * 1.55 }];
       ctx.lineWidth = 1;
       for (const ring of rings) {
         ctx.strokeStyle = `rgba(232,201,138,${ring === rings[0] ? 0.18 : 0.08})`;
         ctx.beginPath(); ctx.arc(cx, cy, ring.r, 0, Math.PI * 2); ctx.stroke();
       }
-      // 旋转符文环（沿最大环 12 个符文）
-      const ringR = R * 1.4;
+      // 旋转符文环：沿最大环 12 个符文，缩小字号 + 降低透明度，避免压住标题
+      const ringR = R * 1.55;
       const rot = t * 0.5;
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot);
       const TRG = ['☰','☱','☲','☳','☴','☵','☶','☷','☯','☉','☽','✦'];
-      ctx.font = `${Math.round(R * 0.16)}px "Noto Serif SC","Songti SC",serif`;
+      ctx.font = `${Math.round(R * 0.10)}px "Noto Serif SC","Songti SC",serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (let i = 0; i < TRG.length; i++) {
         const a = (i / TRG.length) * Math.PI * 2;
         const x = Math.cos(a) * ringR, y = Math.sin(a) * ringR;
-        ctx.fillStyle = i % 2 === 0 ? 'rgba(232,201,138,.45)' : 'rgba(127,200,232,.45)';
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(232,201,138,.30)' : 'rgba(127,200,232,.30)';
         ctx.fillText(TRG[i], x, y);
       }
       ctx.restore();
 
-      // 反向旋转的细环 24 个卦象字符
+      // 反向旋转的细环 24 个卦象字符：进一步缩小字号
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(-rot * 1.2 + Math.PI / 12);
-      ctx.font = `${Math.round(R * 0.11)}px "Noto Serif SC",serif`;
+      ctx.font = `${Math.round(R * 0.07)}px "Noto Serif SC",serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const VERSE = ['乾','坤','震','巽','坎','离','艮','兑','玄','黄','宇','宙','洪','荒','日','月','盈','昃','辰','宿','列','张','寒','来'];
-      ctx.fillStyle = 'rgba(127,200,232,.30)';
+      ctx.fillStyle = 'rgba(127,200,232,.20)';
       for (let i = 0; i < VERSE.length; i++) {
         const a = (i / VERSE.length) * Math.PI * 2;
         const x = Math.cos(a) * (ringR - 22), y = Math.sin(a) * (ringR - 22);

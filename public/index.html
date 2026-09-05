@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.cn/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Serif+TC:wght@400;500;600;700&family=ZCOOL+XiaoWei&family=Cinzel:wght@500;700&family=Cormorant+Garamond:wght@400;600&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="/style.css">
-<script src="/vendor/echarts.min.js"></script>
+<script defer src="/vendor/echarts.min.js"></script>
 <style>
   /* —— Hero：纵向发光带 + 顶部金色雾 + 角卦象 + 主标题巨大毛笔 —— */
   .hero{
@@ -108,7 +108,8 @@
   .cal-cell.today{ border-color:var(--gold); box-shadow:0 0 14px rgba(232,201,138,.25); background:rgba(232,201,138,.06) }
   .cal-cell .d{ font-size:13px; color:var(--ink) }
   .cal-cell .gz{ font-size:10px; color:var(--jade); font-family:var(--font-serif); }
-  .cal-cell .lu{ font-size:9px; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .cal-cell .lu{ font-size:10px; color:var(--ink-dim); line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
   .day-detail{ margin-top:12px; padding:12px; border-radius:10px; background:#0f1420; border:1px solid var(--line); font-size:12.5px; min-height:54px }
   .day-detail b{ color:var(--gold-bright) }
 
@@ -278,13 +279,13 @@
   </div>
 </nav>
 
-<section class="hero">
-  <canvas id="heroBg"></canvas>
-  <div class="hero-vignette"></div>
-  <span class="h-corner tl">☰</span>
-  <span class="h-corner tr">☱</span>
-  <span class="h-corner bl">☶</span>
-  <span class="h-corner br">☷</span>
+<section class="hero" aria-label="辰箓">
+  <canvas id="heroBg" aria-hidden="true"></canvas>
+  <div class="hero-vignette" aria-hidden="true"></div>
+  <span class="h-corner tl" aria-hidden="true">☰</span>
+  <span class="h-corner tr" aria-hidden="true">☱</span>
+  <span class="h-corner bl" aria-hidden="true">☶</span>
+  <span class="h-corner br" aria-hidden="true">☷</span>
   <div class="hero-text">
     <div class="hero-tag-cn">天 机 流 转　乾 坤 交 泰</div>
     <div class="hero-title">辰箓</div>
@@ -295,10 +296,10 @@
 
 <div class="l1-banner">辰箓是传统命理文化的研究与展示工具。所有内容均由 AI 基于公开命理学说自动生成，仅供文化研究与娱乐参考，不构成任何专业建议，亦不对据此作出的任何决策负责。</div>
 
-<div class="container">
+<main class="container">
   <div id="dash" class="loading">正在推演天机…</div>
   <div id="liuyueCard"></div>
-</div>
+</main>
 
 <footer class="site-footer">
   <span id="icp-no">域名备案中 · 暂以 IP 访问</span>

@@ -91,8 +91,12 @@ function applySecurityHeaders(res) {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +
-    "script-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    "default-src 'self'; img-src 'self' data:; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.cn https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.cn https://fonts.gstatic.com; " +
+    "script-src 'self' 'unsafe-inline'; " +
+    "connect-src 'self' https://ipwho.is; " +
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
   );
 }
 function readBody(req, limit = 2 * 1024 * 1024) {
@@ -124,6 +128,12 @@ async function serveStatic(req, res) {
     const data = await readFile(file);
     const mime = MIME[extname(file)] || 'application/octet-stream';
     applySecurityHeaders(res);
+    // P1 · 静态资源缓存：vendor / 带 hash 的库 / 字体 → 1 年 immutable；HTML → no-cache 重新校验
+    if (file.includes(join(PUBLIC, 'vendor')) || /\.(css|js|woff2?|ttf|otf)$/i.test(file)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
     const out = maybeGzip(res, mime, data);
     res.writeHead(200, { 'Content-Type': mime });
     res.end(out);
