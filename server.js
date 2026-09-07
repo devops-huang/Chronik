@@ -1069,7 +1069,8 @@ async function handleExport(req, res) {
   const anon_chat_rate = await rows(`SELECT anon_id, rounds FROM anon_chat_rate WHERE anon_id IN (${linkSub})`, [uid]);
   // I3 · 兑换码（redeemed_by=$uid）/ 付费授权（grantee_id=$uid 或关联游客 anon_id）
   const redeem_codes = await rows(`SELECT code, status, plan, duration_days, created_at, redeemed_at FROM redeem_codes WHERE redeemed_by=$1`, [String(uid)]);
-  const entitlement_grants = await rows(`SELECT id, grantee_type, grantee_id, plan, granted_at, expires_at, source_code FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (${linkSub})`, [String(uid)]);
+  // I3 · grantee_id 为 TEXT（=$1），子查询 user_id 为 BIGINT（=$2，用原始数字 uid 避免 bigint=text）
+  const entitlement_grants = await rows(`SELECT id, grantee_type, grantee_id, plan, granted_at, expires_at, source_code FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (SELECT anon_id FROM user_anon_link WHERE user_id=$2)`, [String(uid), uid]);
   sendJson(res, 200, { user, charts, conversations, messages, fortune_events, anon_chart_rate, anon_chat_rate, redeem_codes, entitlement_grants });
 }
 
@@ -1089,7 +1090,7 @@ async function handleDelete(req, res) {
     anon_chat_rate: await cnt(`SELECT count(*) c FROM anon_chat_rate WHERE anon_id IN (${linkSub})`, [uid]),
     // I3 · 兑换码 / 付费授权（GDPR 双条件口径）
     redeem_codes: await cnt(`SELECT count(*) c FROM redeem_codes WHERE redeemed_by=$1`, [String(uid)]),
-    entitlement_grants: await cnt(`SELECT count(*) c FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (${linkSub})`, [String(uid)]),
+    entitlement_grants: await cnt(`SELECT count(*) c FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (SELECT anon_id FROM user_anon_link WHERE user_id=$2)`, [String(uid), uid]),
   };
   // 双条件删除六表 + 用户侧同意/映射/会话
   await query(`DELETE FROM anon_chat_rate WHERE anon_id IN (${linkSub})`, [uid]);
@@ -1099,7 +1100,7 @@ async function handleDelete(req, res) {
   await query(`DELETE FROM conversations WHERE user_id=$1 OR anon_id IN (${linkSub})`, [uid]);
   await query(`DELETE FROM charts WHERE user_id=$1 OR anon_id IN (${linkSub})`, [uid]);
   // I3 · 先删付费授权（FK source_code ON DELETE SET NULL），再删核销记录
-  await query(`DELETE FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (${linkSub})`, [String(uid)]);
+  await query(`DELETE FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (SELECT anon_id FROM user_anon_link WHERE user_id=$2)`, [String(uid), uid]);
   await query(`DELETE FROM redeem_codes WHERE redeemed_by=$1`, [String(uid)]);
   await query(`DELETE FROM user_agreements WHERE user_id=$1`, [uid]);
   await query(`DELETE FROM user_anon_link WHERE user_id=$1`, [uid]);
