@@ -68,6 +68,11 @@ code{color:var(--jade);font-family:ui-monospace,monospace;font-size:11px}
 .user-menu{display:flex;align-items:center;gap:10px}
 .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--jade),var(--cyan));
   display:grid;place-items:center;color:#08110f;font-weight:700;font-size:13px}
+/* I0 · 拆登录墙：游客态的登录入口（区别于退出按钮） */
+.nav-login{display:inline-flex;align-items:center;padding:8px 16px;min-height:44px;border-radius:10px;
+  color:var(--gold-bright);border:1px solid var(--gold);font-size:13px;letter-spacing:2px;
+  text-decoration:none;font-family:var(--font-cn);transition:.2s}
+.nav-login:hover{background:rgba(232,201,138,.12);box-shadow:0 0 18px rgba(232,201,138,.25)}
 
 /* 卡片 */
 .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);

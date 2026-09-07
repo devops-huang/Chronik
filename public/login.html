@@ -167,6 +167,19 @@
   .consent{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-dim); margin:10px 0 4px; line-height:1.5 }
   .consent a{ color:var(--gold-bright); text-decoration:none }
   .consent input{ width:15px; height:15px; accent-color:var(--gold) }
+
+  /* I0 · 价值展示屏（登录墙前先展示能力，降低注册门槛） */
+  .value-title{ width:min(620px,94vw); text-align:center; color:var(--jade);
+    font-family:var(--font-serif); font-size:13px; letter-spacing:6px; margin-bottom:14px; }
+  .value-show{ width:min(620px,94vw); margin:0 0 26px;
+    display:grid; grid-template-columns:repeat(2,1fr); gap:12px; animation:fadeup 1s ease .15s both; }
+  .value-show .vt{ display:flex; gap:12px; align-items:flex-start; padding:14px 16px;
+    background:rgba(18,24,38,.6); border:1px solid var(--line); border-radius:14px; }
+  .value-show .vt-ic{ font-size:24px; line-height:1; }
+  .value-show .vt b{ display:block; color:var(--gold-bright); font-size:14px; letter-spacing:1px;
+    margin-bottom:4px; font-family:var(--font-cn); }
+  .value-show .vt span{ color:var(--ink-dim); font-size:12px; line-height:1.6; }
+  @media (max-width:560px){ .value-show{ grid-template-columns:1fr; } .value-title{ font-size:12px; } }
 </style>
 </head>
 <body>
@@ -180,7 +193,7 @@
   <span class="corner-trigram br">☷</span>
 
   <div class="rune-stream left">乾 坤 震 巽 坎 离 艮 兑 　太极两仪三才四象五行六合七星八卦九宫十方　玄黄宇宙洪荒日月盈昃辰宿列张</div>
-  <div class="rune-stream right">天 机 万 象　紫 微 天 府　太 阴 太 阳　贪 狼 巨 门　武 曲 廉 贞　破 军 七 政　四 煞 天 乙　三 台 六 壬</div>
+  <div class="rune-stream right">天 机 万 象　北 辰 列 宿　日 月 星 辰　金 木 水 火　风 雷 山 泽　乾 坤 坎 离　太 虚 鸿 蒙　玄 黄 宇 宙</div>
 
   <main class="stage">
     <div class="brand">
@@ -190,6 +203,15 @@
       <div class="seal-line">天 机 流 转</div>
       <div class="sub-line" id="dateLine">— 推演至今 —</div>
     </div>
+
+    <!-- I0 · 价值展示屏：游客先看到辰箓能做什么，再决定是否注册 -->
+    <div class="value-title">辰箓能为你做什么</div>
+    <section class="value-show" aria-label="辰箓能为你做什么">
+      <div class="vt"><span class="vt-ic">☯</span><div><b>八字排盘</b><span>输入生辰，排出完整四柱命盘与大运流年</span></div></div>
+      <div class="vt"><span class="vt-ic">🪞</span><div><b>深度解读</b><span>日主五行、十神格局与人生运势的 AI 解析</span></div></div>
+      <div class="vt"><span class="vt-ic">🎴</span><div><b>灵签占卜</b><span>每日灵签与宜忌，指引当下抉择</span></div></div>
+      <div class="vt"><span class="vt-ic">🌤️</span><div><b>每日运势</b><span>结合万年历与天气的个性化每日提醒</span></div></div>
+    </section>
 
     <section class="panel">
       <div class="tabs">

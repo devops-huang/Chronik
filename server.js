@@ -195,22 +195,32 @@ function clientIp(req) {
   return req.socket?.remoteAddress || '0.0.0.0';
 }
 
-// ── 首页（万年历 + 今日运势 + 天气 + 阴阳） ──
+// ── 首页（万年历 + 今日运势 + 天气 + 阴阳；游客可免登录浏览） ──
 async function handleHome(req, res) {
-  const user = await requireUser(req, res); if (!user) return;
+  // I0 · 拆登录墙：游客（匿名）可直接浏览首页全部内容；
+  // 仅排盘 / AI 时才需登录（由对应接口负责 fail-open 引导，本接口不拦截游客）。
+  const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
+  const isGuest = ctx.isGuest;
+  const user = ctx.user;
   const { dateStr } = todayInShanghai();
   const [y, m] = dateStr.split('-').map(Number);
   const monthGrid = buildMonthGrid(y, m, dateStr);
-  // 5.3：四元运势需要「日主天干 + 月令地支」。二者只由出生日期决定（与时辰无关），
-  // 因此没填时辰、没排过盘的用户同样可以个性化：优先读已存字段，缺失则由出生日期现算并回填。
-  let natal = (user.day_stem && user.month_zhi)
-    ? { dayStem: user.day_stem, monthZhi: user.month_zhi, gender: user.gender }
-    : deriveNatalFromBirth(user.birth_date, user.birth_calendar);
-  if (natal && !user.day_stem) {
-    updateProfile(user.id, { day_stem: natal.dayStem, month_zhi: natal.monthZhi }).catch(() => {});
+  let fortune;
+  if (!isGuest && user) {
+    // 5.3：四元运势需要「日主天干 + 月令地支」。二者只由出生日期决定（与时辰无关），
+    // 因此没填时辰、没排过盘的用户同样可以个性化：优先读已存字段，缺失则由出生日期现算并回填。
+    let natal = (user.day_stem && user.month_zhi)
+      ? { dayStem: user.day_stem, monthZhi: user.month_zhi, gender: user.gender }
+      : deriveNatalFromBirth(user.birth_date, user.birth_calendar);
+    if (natal && !user.day_stem) {
+      updateProfile(user.id, { day_stem: natal.dayStem, month_zhi: natal.monthZhi }).catch(() => {});
+    }
+    fortune = buildTodayFortune(
+      user.day_master ? { dayMasterElement: user.day_master } : null, dateStr, natal);
+  } else {
+    // 游客态：无命盘，展示通用运势（前端降级展示，不报错）
+    fortune = buildTodayFortune(null, dateStr, null);
   }
-  const fortune = buildTodayFortune(
-    user.day_master ? { dayMasterElement: user.day_master } : null, dateStr, natal);
   // 优先用前端传来的经纬度（当前定位），否则回退用户城市 / 北京
   const u = new URL(req.url, 'http://x');
   const lat = u.searchParams.get('lat'), lon = u.searchParams.get('lon');
@@ -219,10 +229,12 @@ async function handleHome(req, res) {
   let weather = null;
   try {
     if (haveLL) weather = await getWeatherByLatLon(Number(lat), Number(lon));
-    else weather = await getWeather(user.weather_city || '北京');
+    else if (!isGuest && user?.weather_city) weather = await getWeather(user.weather_city);
+    else weather = await getWeather('北京');
   } catch (e) { weather = { error: e.message }; }
   sendJson(res, 200, {
-    user: { nickname: user.nickname, username: user.username, weatherCity: user.weather_city },
+    user: user ? { nickname: user.nickname, username: user.username, weatherCity: user.weather_city } : null,
+    isGuest,
     today: dateStr,
     monthGrid, monthLabel: `${y}年${m}月`,
     fortune, weather,
@@ -765,6 +777,10 @@ const TRACK_ACTIONS = new Set([
   'page_view', 'chart_done', 'report_viewed', 'fortune_expand',
   'ai_first_q', 'ai_q_fail', 'anon_to_signup', 'calendar_viewed',
   'login', 'register', 'logout',
+  // I0 · 埋点骨架：拆墙 + 付费/分享漏斗新增事件（复用 /api/track 单端点）
+  'pricing_viewed', 'paywall_hit', 'redeem_success',
+  'login_wall_view', 'home_anon_view',
+  'share_generated', 'source_self_report',
 ]);
 const trackBuckets = new Map(); // key → 最近时间戳数组（滑动窗口 1s）
 function trackAllowed(key) {

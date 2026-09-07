@@ -33,12 +33,25 @@
     { lv: 3, levelText: '下下', title: '第五十二籤 · 下下', poem: ['霜重風嚴草木凋', '前程黯黯路迢迢', '且斂鋒鋩藏肘後', '待春回處再扶搖'], desc: '收斂鋒芒、低調潛行，待時運回轉再圖大舉。' },
   ];
 
-  // ── 鉴权守卫 ──
+  // ── 鉴权上下文（I0 · 拆登录墙：游客不跳转登录页，首页内容对游客直接可见）──
   fetch('/api/auth/me').then((r) => r.ok ? r.json() : null).then((me) => {
-    if (!me) { location.href = '/login.html'; return; }
-    withEl('uname', (e) => { e.textContent = me.user.nickname || me.user.username; });
-    withEl('avatar', (e) => { e.textContent = (me.user.nickname || me.user.username || '辰')[0]; });
-  }).catch(() => {});
+    if (me) {
+      withEl('uname', (e) => { e.textContent = me.user.nickname || me.user.username; });
+      withEl('avatar', (e) => { e.textContent = (me.user.nickname || me.user.username || '辰')[0]; });
+      withEl('btnLoginLink', (e) => { e.hidden = true; });
+      withEl('btnLogout', (e) => { e.style.display = ''; });
+    } else {
+      // 游客态：展示登录入口（不跳转），并上报游客首页浏览
+      withEl('uname', (e) => { e.textContent = ''; });
+      withEl('btnLoginLink', (e) => { e.hidden = false; });
+      withEl('btnLogout', (e) => { e.style.display = 'none'; });
+      trackEvent('home_anon_view', {});
+    }
+  }).catch(() => {
+    // 鉴权查询异常 → fail-open：仍按游客态展示首页内容，仅展示登录入口
+    withEl('btnLoginLink', (e) => { e.hidden = false; });
+    withEl('btnLogout', (e) => { e.style.display = 'none'; });
+  });
 
   withEl('btnLogout', (b) => { b.onclick = async () => {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}

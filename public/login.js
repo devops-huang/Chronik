@@ -172,6 +172,14 @@
   // 免登录试用 → 进推演阁（游客态）
   withEl('btnGuest', (b) => { b.onclick = () => { location.href = '/studio.html'; }; });
 
-  // 已登录则直接进首页
-  fetch('/api/auth/me').then((r) => r.ok ? r.json() : null).then((me) => { if (me) location.href = '/index.html'; }).catch(() => {});
+  // 已登录则直接进首页；否则视为「登录墙」曝光（游客先看到价值展示屏再决定是否注册）
+  fetch('/api/auth/me').then((r) => r.ok ? r.json() : null).then((me) => {
+    if (me) { location.href = '/index.html'; return; }
+    try {
+      fetch('/api/track', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login_wall_view', payload: {} }), keepalive: true,
+      });
+    } catch (e) { /* 埋点失败不阻断 */ }
+  }).catch(() => {});
 })();
