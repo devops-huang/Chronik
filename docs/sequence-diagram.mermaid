@@ -1,0 +1,48 @@
+sequenceDiagram
+    participant C as 前端(studio.js)
+    participant S as server.handleChat
+    participant Q as quota.checkAiQuota
+    participant DB as PG
+
+    Note over C,DB: 流 A — 游客每日 3 轮（fail-open）
+    C->>S: POST /api/chat (游客 anon_id)
+    S->>S: requireUserOrAnon → ctx.isGuest=true
+    S->>Q: checkAiQuota(ctx)
+    Q->>DB: INSERT anon_chat_rate(anon_id,rounds=1,day_date)<br/>ON CONFLICT DO UPDATE SET rounds=<br/>CASE WHEN day_date<>excluded THEN 1 ELSE rounds+1 END
+    DB-->>Q: rounds
+    alt rounds > 3
+        Q-->>S: {ok:false, paywall:true}
+        S-->>C: 402 {needLogin:true, paywall:true}
+    else 正常
+        Q-->>S: {ok:true, remaining}
+        S->>S: 进入 LLM 流式
+    end
+
+    Note over C,DB: 流 B — 注册用户付费 flag 判定（免费3 / 付费30）
+    C->>S: POST /api/chat (已登录 user_id)
+    S->>S: requireUserOrAnon → ctx.isGuest=false
+    S->>Q: checkAiQuota(ctx)
+    Q->>DB: SELECT 1 FROM entitlement_grants WHERE grantee_id=$1 AND expires_at>now() LIMIT 1
+    DB-->>Q: 是否有效授权
+    Q->>Q: limit = 有效 ? 30 : 3
+    Q->>DB: INSERT user_ai_quota(user_id,rounds=1,day_date)<br/>ON CONFLICT DO UPDATE SET rounds=<br/>CASE WHEN day_date<>excluded THEN 1 ELSE rounds+1 END
+    DB-->>Q: rounds
+    alt rounds > limit
+        Q-->>S: {ok:false, paywall:true, isPaid:有效}
+        S-->>C: 402 {paywall:true, upgradeRequired:true}
+    else 正常
+        Q-->>S: {ok:true, remaining, isPaid}
+    end
+
+    Note over C,DB: 流 C — 兑换码原子核销（P0-7）
+    C->>S: POST /api/redeem {code} (需登录)
+    S->>DB: UPDATE redeem_codes SET status='used', redeemed_at=now(), redeemed_by=$uid<br/>WHERE code=$1 AND status='unused' RETURNING *
+    alt 命中(原子)
+        DB-->>S: 码行(plan, duration_days)
+        S->>DB: INSERT entitlement_grants(grantee_type='user_id', grantee_id=$uid, plan, expires_at=now()+duration_days, source_code=$code)
+        S->>DB: track events 'redeem_success'
+        S-->>C: 200 {ok:true, plan, expiresAt, isPaid:true}
+    else 未命中
+        DB-->>S: rowCount=0
+        S-->>C: 400/404 {error, code:'USED'|'INVALID'}
+    end

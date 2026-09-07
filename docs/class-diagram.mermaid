@@ -1,0 +1,35 @@
+classDiagram
+    class anon_chat_rate {
+        +TEXT anon_id «PK»
+        +INT rounds
+        +DATE day_date
+    }
+    class user_ai_quota {
+        +BIGINT user_id «PK,FK to users»
+        +INT rounds
+        +DATE day_date
+    }
+    class redeem_codes {
+        +TEXT code «PK»
+        +VARCHAR status  «unused|used»
+        +VARCHAR plan     «year…»
+        +INT duration_days
+        +TEXT created_by
+        +TIMESTAMPTZ created_at
+        +TIMESTAMPTZ redeemed_at
+        +TEXT redeemed_by
+    }
+    class entitlement_grants {
+        +BIGSERIAL id «PK»
+        +VARCHAR grantee_type «user_id|anon_id»
+        +TEXT grantee_id
+        +VARCHAR plan
+        +TIMESTAMPTZ granted_at
+        +TIMESTAMPTZ expires_at
+        +TEXT source_code «FK to redeem_codes.code»
+    }
+    class users {
+        +BIGINT id «PK»
+    }
+    users ||--o| user_ai_quota : ON DELETE CASCADE
+    redeem_codes ||--o{ entitlement_grants : source_code

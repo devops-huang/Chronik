@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS anon_chat_rate (
   anon_id TEXT PRIMARY KEY,
   rounds  INT NOT NULL DEFAULT 0
 );
+-- I3 · 修正「终身 3 轮」硬伤：补 day_date，统一 Asia/Shanghai 自然日口径（共享约定 §6.1）
+ALTER TABLE anon_chat_rate ADD COLUMN IF NOT EXISTS day_date DATE NOT NULL DEFAULT (timezone('Asia/Shanghai', now())::date);
 
 -- ── 对话历史持久化（5.2）──
 -- 每次排盘对应一段独立对话；conversations.user_id 关联用户（删号级联物理删除），
@@ -184,4 +186,41 @@ CREATE INDEX IF NOT EXISTS idx_events_anon ON events(anon_id) WHERE anon_id IS N
 -- ── 孤儿数据 TTL 清理（V2 硬门槛：user_id IS NULL AND created_at < now()-30d）──
 -- 生产由 cron 调用 tools/cleanup-orphans.mjs；此处仅保证 schema 支持。
 -- charts / conversations / messages / fortune_events 已含 user_id 可空 + created_at。
+
+-- ─────────────────────────────────────────────────────────────
+-- I3 · 变现闭环：配额 / 兑换码 / 付费授权（幂等，可重复执行）
+-- ─────────────────────────────────────────────────────────────
+
+-- 注册用户每日 AI 轮次配额（与 anon_chat_rate 并列，避免改游客表兼容两类身份）
+CREATE TABLE IF NOT EXISTS user_ai_quota (
+  user_id  BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  rounds   INT NOT NULL DEFAULT 0,
+  day_date DATE NOT NULL DEFAULT (timezone('Asia/Shanghai', now())::date)
+);
+
+-- 兑换码（P0-7）：status 仅 unused|used 两态
+CREATE TABLE IF NOT EXISTS redeem_codes (
+  code          TEXT PRIMARY KEY,
+  status        VARCHAR(16) NOT NULL DEFAULT 'unused',   -- unused | used
+  plan          VARCHAR(24) NOT NULL DEFAULT 'year',
+  duration_days INT NOT NULL DEFAULT 365,                 -- 核销后授权有效期（天）
+  created_by    TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  redeemed_at   TIMESTAMPTZ,
+  redeemed_by   TEXT,                                     -- 核销用户 id / 游客 anon_id
+  valid_until   TIMESTAMPTZ                                -- 兑换码自身有效期（NULL=永久有效）
+);
+CREATE INDEX IF NOT EXISTS idx_redeem_codes_status ON redeem_codes(status);
+
+-- 付费授权（P0-6 / P0-7）：付费 flag 的权威来源
+CREATE TABLE IF NOT EXISTS entitlement_grants (
+  id           BIGSERIAL PRIMARY KEY,
+  grantee_type VARCHAR(16) NOT NULL DEFAULT 'user_id',    -- user_id | anon_id
+  grantee_id   TEXT NOT NULL,                              -- users.id / anon_id
+  plan         VARCHAR(24) NOT NULL DEFAULT 'year',
+  granted_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at   TIMESTAMPTZ NOT NULL,                       -- 付费有效期终点
+  source_code  TEXT REFERENCES redeem_codes(code) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_entitlement_grantee ON entitlement_grants(grantee_type, grantee_id, expires_at);
 

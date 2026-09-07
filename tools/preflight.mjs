@@ -6,7 +6,8 @@
  * 禁止发版。串联顺序（依据任务规范，固定不可调）：
  *
  *   smoke.mjs → verify-i0.mjs → qa-gates.mjs → test-content-policy.mjs →
- *   test-gdpr.mjs → test-auth.mjs → test-chart.mjs → test-report.mjs → test-pipeline.mjs
+ *   test-gdpr.mjs → test-auth.mjs → test-chart.mjs → test-report.mjs →
+ *   test-quota.mjs → test-redeem.mjs → test-paywall.mjs → test-pipeline.mjs
  *
  *   注：verify-i0 与 test-pipeline 并存——两者分别来自两份 QA 任务规范的 8 脚本清单
  *   （一份含 verify-i0、一份含 test-pipeline），合并后共 9 项，确保两条真实链路都不被遗漏。
@@ -47,6 +48,10 @@ const SCRIPTS = [
   { name: 'test-auth',           file: 'tools/test-auth.mjs',           args: [],                            envDependent: false },
   { name: 'test-chart',          file: 'tools/test-chart.mjs',          args: [],                            envDependent: false },
   { name: 'test-report',         file: 'tools/test-report.mjs',         args: [],                            envDependent: false },
+  // I3 · 变现闭环验收（P0-6 配额 / P0-7 兑换码 / 付费墙）：需 PG + 运行中的服务
+  { name: 'test-quota',          file: 'tools/test-quota.mjs',          args: [],                            envDependent: true  },
+  { name: 'test-redeem',         file: 'tools/test-redeem.mjs',         args: [],                            envDependent: true  },
+  { name: 'test-paywall',        file: 'tools/test-paywall.mjs',        args: [],                            envDependent: true  },
   { name: 'test-pipeline',       file: 'tools/test-pipeline.mjs',       args: [],                            envDependent: false },
 ];
 

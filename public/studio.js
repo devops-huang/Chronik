@@ -66,9 +66,18 @@
     try {
       // 鉴权：游客免登录（5.1）— 未登录不再跳转，改为游客模式
       fetch('/api/auth/me').then((r) => r.ok ? r.json() : null).then((me) => {
-        if (me && me.user) applyLoggedInUI(me.user);
+        if (me && me.user) { applyLoggedInUI(me.user); refreshQuota(); }
         else applyGuestUI();
       }).catch(() => applyGuestUI());
+
+      // I3 · 兑换成功后跨页刷新付费态（pricing.html 通过 BroadcastChannel / storage 广播）
+      try {
+        if (window.BroadcastChannel) {
+          const bc = new BroadcastChannel('cl_entitlement');
+          bc.onmessage = (e) => { if (e.data && e.data.type === 'redeem_success') refreshQuota(); };
+        }
+      } catch {}
+      window.addEventListener('storage', (e) => { if (e.key === 'cl_entitlement_updated') refreshQuota(); });
 
       // 导航：登录/注册入口（游客态显示）
       withEl('btnLogin', (e) => { e.onclick = () => openAuth('login'); });
@@ -237,6 +246,22 @@
   function setSendLoading(on) {
     withEl('btnSend', (e) => { e.classList.toggle('loading', !!on); e.disabled = !!on; });
   }
+  // I3 · 付费态 / 额度展示：登录后拉取 /api/quota，显示「今日剩 X 轮」+ 会员徽标
+  function refreshQuota() {
+    fetch('/api/quota').then((r) => r.ok ? r.json() : null).then((d) => {
+      if (!d) return;
+      const vip = $('vipBadge'), q = $('quotaBadge');
+      if (d.isPaid) {
+        if (vip) vip.style.display = '';
+        if (q) { q.style.display = ''; q.textContent = '· 无限 AI 答疑'; }
+        state.guest = false;
+      } else {
+        if (vip) vip.style.display = 'none';
+        if (q) { q.style.display = ''; q.textContent = `· 今日剩 ${d.remaining} 轮`; }
+      }
+    }).catch(() => {});
+  }
+
   function addThinkingBubble() {
     return withEl('chatBody', (cb) => {
       const el = document.createElement('div');
@@ -331,6 +356,12 @@
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         removeThinkingBubble();
+        if (d.paywall) {
+          addMsg('ai',
+            '🔒 今日 AI 额度已用尽<br/>升级会员解锁每日 30 轮问答：<a href="/pricing.html">查看会员方案 →</a>',
+            true);
+          return;
+        }
         if (d.needLogin) {
           addMsg('ai',
             '🔒 你已体验完游客版 3 轮免费问答<br/>' +
@@ -555,6 +586,7 @@
         user = d.user; merged = d.merged || 0;
       }
       applyLoggedInUI(user);
+      refreshQuota(); // I3 · 登录/注册后刷新付费态与额度展示
       if (kind === 'reg') trackEvent('anon_to_signup', { merged }); // R3 · 游客→注册
       closeAuth();
       loadRecent();

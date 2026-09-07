@@ -8,7 +8,7 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execSync, execFile } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +25,8 @@ import { buildMonthGrid, buildTodayFortune, getWeather, getWeatherByLatLon, toda
 import { deriveNatalFromBirth } from './lib/fortuneEngine.js';
 import { loadLlmConfig, saveLlmConfig, maskKey } from './lib/llmConfig.js';
 import { isBlocked, getRefusal, DISCLAIMER_L2, DISCLAIMER_L3, isHighRisk, CHAT_ROLE_DECLARATION } from './lib/content-policy.js';
+// I3 · 服务端权威配额（P0-6）：统一配额入口 + 付费授权查询
+import { checkAiQuota, getQuotaInfo, getEntitlement, FREE_DAILY_ROUNDS, PAID_DAILY_ROUNDS } from './lib/quota.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -182,18 +184,8 @@ async function checkChartRate(ip) {
   return { ok: true, remaining: CHART_RATE_LIMIT - cnt - 1 };
 }
 
-const CHAT_GUEST_LIMIT = 3;
-async function checkChatGuest(anonId) {
-  const r = await query('SELECT rounds FROM anon_chat_rate WHERE anon_id=$1', [anonId]);
-  if (r.rowCount === 0) {
-    await query('INSERT INTO anon_chat_rate(anon_id, rounds) VALUES($1,1)', [anonId]);
-    return { ok: true, rounds: 1 };
-  }
-  const rounds = r.rows[0].rounds;
-  if (rounds >= CHAT_GUEST_LIMIT) return { ok: false, rounds };
-  await query('UPDATE anon_chat_rate SET rounds=rounds+1 WHERE anon_id=$1', [anonId]);
-  return { ok: true, rounds: rounds + 1 };
-}
+// I3 · 旧 checkChatGuest（仅游客限 3）已由统一 checkAiQuota 取代（见 handleChat）。
+// 统一配额同时覆盖 guest(3/日) 与 user(30/日-if-paid)，并修复「终身 3 轮」硬伤。
 
 function clientIp(req) {
   const xff = req.headers['x-forwarded-for'];
@@ -549,6 +541,25 @@ async function handleChat(req, res) {
   if (!message || !message.content || !String(message.content).trim()) {
     return sendJson(res, 400, { error: '缺少对话内容' });
   }
+  const { chartId, chartContext, conversationId } = body;
+  // P0-6 · 统一配额（guest 3/日、user 30/日-if-paid），原子 UPSERT 计数；超限 402 + paywall。
+  // 必须排在「内容禁区硬拦截」之前：每次有效请求都计一轮，确保第 N+1 轮被服务端强制拦截
+  // （test-paywall 核心命题「前端限制不算数」——绕过前端直连 API 仍被服务端 402）。
+  const quota = await checkAiQuota(ctx).catch(() => ({
+    ok: true, remaining: FREE_DAILY_ROUNDS, limit: FREE_DAILY_ROUNDS, isPaid: false, paywall: false,
+  }));
+  if (!quota.ok) {
+    return sendJson(res, 402, {
+      paywall: true,
+      needLogin: ctx.isGuest,             // 游客 → 引导登录
+      upgradeRequired: !ctx.isGuest,      // 已登录免费用户 → 引导升级
+      remaining: quota.remaining,
+      limit: quota.limit,
+      error: ctx.isGuest
+        ? '免费问答已达 3 轮/日上限，登录后即可继续追问 👇'
+        : '今日 AI 额度已用尽，升级会员解锁每日 30 轮问答 👑',
+    });
+  }
   // P0-9 · 高风险倾向判定（健康/投资/法律）。仅作"倾向"识别，不做确定性断言，避免正常命理问答被误杀。
   const highRisk = isHighRisk(message.content);
   // P0-9 · 输入侧硬拦截：命中 A–J 内容禁区（现有 isBlocked）直接拒答，不进 AI、不落 messages
@@ -556,12 +567,6 @@ async function handleChat(req, res) {
   if (inputBlock.hit) {
     console.log('[chat] 输入命中内容禁区 %s，硬拦截拒答', inputBlock.category);
     return emitRefusalSSE(res, inputBlock.category);
-  }
-  const { chartId, chartContext, conversationId } = body;
-  // 游客限 3 轮问答，第 4 轮起提示登录（不调用 LLM，防刷额度）
-  if (ctx.isGuest) {
-    const c = await checkChatGuest(ctx.anonId).catch(() => ({ ok: true }));
-    if (!c.ok) return sendJson(res, 402, { needLogin: true, error: '免费问答已达 3 轮上限，登录后即可继续追问 👇' });
   }
   // 配置优先级：管理员服务端配置 > 环境变量（前端不再传入密钥，避免泄露）
   const srv = loadLlmConfig();
@@ -818,7 +823,159 @@ async function handleLogout(req, res) {
 async function handleMe(req, res) {
   const user = await getUserFromRequest(req);
   if (!user) return sendJson(res, 401, { error: '未登录' });
-  sendJson(res, 200, { user });
+  // P0-6 · 回带付费态；异常 → 免费态（fail-open，绝不让用户看到 500）
+  let plan = 'free', entitlementExpiresAt = null;
+  try {
+    const ent = await getEntitlement(user.id);
+    if (ent) {
+      plan = 'paid';
+      entitlementExpiresAt = ent.expiresAt ? new Date(ent.expiresAt).toISOString() : null;
+    }
+  } catch { /* fail-open：保持免费态 */ }
+  sendJson(res, 200, { user: { ...user, plan, entitlementExpiresAt } });
+}
+
+// ── I3 · 配额查询（P0-6）：返回剩余轮次 + 上限 + 付费态 ──
+async function handleQuota(req, res) {
+  const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
+  const info = await getQuotaInfo(ctx);
+  sendJson(res, 200, {
+    remaining: info.remaining,
+    limit: info.limit,
+    isPaid: info.isPaid,
+    plan: info.plan,
+  });
+}
+
+// ── I3 · 兑换码原子核销（P0-7）──
+async function handleRedeem(req, res) {
+  const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
+  // 注：前端限制不算数；游客亦可核销（grantee_type='anon_id'），核心命题在「原子核销防重兑」与「付费 flag 服务端生效」。
+  let body;
+  try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: e.message }); }
+  const code = String(body?.code || '').trim();
+  if (!code) return sendJson(res, 400, { error: '缺少兑换码', code: 'INVALID' });
+
+  const granteeType = ctx.isGuest ? 'anon_id' : 'user_id';
+  const granteeId = ctx.isGuest ? ctx.anonId : String(ctx.user.id);
+
+  try {
+    // 原子核销：仅 status='unused' 且未过期方可核销（WHERE 子句同时防重兑 + 过期拒）
+    const upd = await query(
+      `UPDATE redeem_codes
+       SET status='used', redeemed_at=now(), redeemed_by=$2
+       WHERE code=$1 AND status='unused' AND (valid_until IS NULL OR valid_until > now())
+       RETURNING code, plan, duration_days`,
+      [code, granteeId],
+    );
+    if (upd.rowCount === 0) {
+      // 未命中原子核销 → 区分原因返回语义化错误码
+      const ex = await query('SELECT status, valid_until FROM redeem_codes WHERE code=$1', [code]);
+      if (ex.rowCount === 0) return sendJson(res, 404, { error: '兑换码不存在或无效', code: 'INVALID' });
+      const row = ex.rows[0];
+      if (row.status === 'used') return sendJson(res, 400, { error: '兑换码已被使用', code: 'USED' });
+      if (row.valid_until && new Date(row.valid_until).getTime() < Date.now()) {
+        return sendJson(res, 400, { error: '兑换码已过期', code: 'EXPIRED' });
+      }
+      return sendJson(res, 400, { error: '兑换码不可用', code: 'INVALID' });
+    }
+    const c = upd.rows[0];
+    const plan = c.plan || 'year';
+    const duration = Number(c.duration_days) || 365;
+    const expiresAt = new Date(Date.now() + duration * 86400000);
+    // 写付费授权（权威来源）
+    await query(
+      `INSERT INTO entitlement_grants (grantee_type, grantee_id, plan, granted_at, expires_at, source_code)
+       VALUES ($1, $2, $3, now(), $4, $5)`,
+      [granteeType, granteeId, plan, expiresAt, code],
+    );
+    // 埋点 redeem_success（失败静默忽略）
+    await query(
+      'INSERT INTO events (action, payload, user_id) VALUES ($1, $2, $3)',
+      ['redeem_success', { plan, code, durationDays: duration }, ctx.isGuest ? null : ctx.user.id],
+    ).catch(() => {});
+    sendJson(res, 200, {
+      ok: true, plan, expiresAt: expiresAt.toISOString(), isPaid: true,
+      granteeType,
+    });
+  } catch (e) {
+    // 核销写库异常 → 返回 500（不静默授予；明确安全硬拦截例外）
+    console.error('[redeem] 核销异常：', e.message);
+    sendJson(res, 500, { error: '兑换处理失败，请稍后再试', code: 'ERROR' });
+  }
+}
+
+// ── I3 · 管理端发码（P0-7，ADMIN_TOKEN 保护，复用 /api/admin/llm 校验写法）──
+// 兼容三种令牌来源：Authorization: Bearer / body.token / ?token=
+function resolveAdminToken(req, body) {
+  const authz = req.headers['authorization'] || '';
+  const m = authz.match(/^Bearer\s+(.+)$/i);
+  if (m) return m[1].trim();
+  const q = new URL(req.url, 'http://x').searchParams.get('token') || '';
+  if (q) return q;
+  if (body && body.token) return String(body.token);
+  return '';
+}
+// 归一化发码请求体：数组 [{code, validUntil|durationDays, plan}] / {codes:[...]} / 单对象
+function normalizeCodeSpecs(body) {
+  let raw = [];
+  if (Array.isArray(body)) raw = body;
+  else if (body && Array.isArray(body.codes)) raw = body.codes;
+  else if (body && body.code) raw = [body];
+  else return [];
+  const out = [];
+  for (const it of raw) {
+    if (!it || !it.code) continue;
+    const code = String(it.code).trim();
+    if (!code) continue;
+    let validUntil = null;
+    let durationDays = 365; // 默认有效期 365 天（Edward 拍板）
+    if (it.validUntil) {
+      const d = new Date(it.validUntil);
+      if (!isNaN(d.getTime())) validUntil = d;
+    }
+    if (typeof it.durationDays === 'number' && it.durationDays > 0) {
+      durationDays = Math.floor(it.durationDays);
+    }
+    out.push({ code, plan: it.plan || 'year', durationDays, validUntil });
+  }
+  return out;
+}
+async function handleAdminRedeemCodes(req, res) {
+  if (!ADMIN_TOKEN) {
+    return sendJson(res, 403, { error: '管理员令牌未启用（请设置 ADMIN_TOKEN 或 data/admin.token）' });
+  }
+  let body = null;
+  if (req.method === 'POST') {
+    try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: e.message }); }
+  }
+  const token = resolveAdminToken(req, body);
+  if (token !== ADMIN_TOKEN) return sendJson(res, 401, { error: '管理员令牌错误' });
+
+  if (req.method === 'GET') {
+    const r = await query(
+      `SELECT code, status, plan, duration_days, created_by, created_at, redeemed_at, redeemed_by, valid_until
+       FROM redeem_codes ORDER BY created_at DESC LIMIT 200`,
+    ).catch(() => ({ rows: [] }));
+    return sendJson(res, 200, { codes: r.rows });
+  }
+  if (req.method === 'POST') {
+    const items = normalizeCodeSpecs(body);
+    if (!items.length) return sendJson(res, 400, { error: '缺少有效的兑换码定义' });
+    const created = [];
+    for (const it of items) {
+      // 重复码忽略（ON CONFLICT DO NOTHING），不覆盖既有码
+      await query(
+        `INSERT INTO redeem_codes (code, status, plan, duration_days, created_by, valid_until)
+         VALUES ($1, 'unused', $2, $3, 'admin', $4)
+         ON CONFLICT (code) DO NOTHING`,
+        [it.code, it.plan, it.durationDays, it.validUntil],
+      ).catch(() => {});
+      created.push(it.code);
+    }
+    return sendJson(res, 200, { ok: true, createdCount: created.length, codes: created });
+  }
+  return sendJson(res, 405, { error: '方法不允许' });
 }
 
 // ── 密码重置通道（R0 · 认证修复后强制全量重置）──
@@ -910,7 +1067,10 @@ async function handleExport(req, res) {
   const fortune_events = await rows(`SELECT id, action, created_at FROM fortune_events WHERE user_id=$1 OR anon_id IN (${linkSub}) ORDER BY created_at DESC`, [uid]);
   const anon_chart_rate = await rows(`SELECT ip, cnt, window_start AS created_at FROM anon_chart_rate WHERE anon_id IN (${linkSub})`, [uid]);
   const anon_chat_rate = await rows(`SELECT anon_id, rounds FROM anon_chat_rate WHERE anon_id IN (${linkSub})`, [uid]);
-  sendJson(res, 200, { user, charts, conversations, messages, fortune_events, anon_chart_rate, anon_chat_rate });
+  // I3 · 兑换码（redeemed_by=$uid）/ 付费授权（grantee_id=$uid 或关联游客 anon_id）
+  const redeem_codes = await rows(`SELECT code, status, plan, duration_days, created_at, redeemed_at FROM redeem_codes WHERE redeemed_by=$1`, [String(uid)]);
+  const entitlement_grants = await rows(`SELECT id, grantee_type, grantee_id, plan, granted_at, expires_at, source_code FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (${linkSub})`, [String(uid)]);
+  sendJson(res, 200, { user, charts, conversations, messages, fortune_events, anon_chart_rate, anon_chat_rate, redeem_codes, entitlement_grants });
 }
 
 async function handleDelete(req, res) {
@@ -927,6 +1087,9 @@ async function handleDelete(req, res) {
     fortune_events: await cnt(`SELECT count(*) c FROM fortune_events WHERE user_id=$1 OR anon_id IN (${linkSub})`, [uid]),
     anon_chart_rate: await cnt(`SELECT count(*) c FROM anon_chart_rate WHERE anon_id IN (${linkSub})`, [uid]),
     anon_chat_rate: await cnt(`SELECT count(*) c FROM anon_chat_rate WHERE anon_id IN (${linkSub})`, [uid]),
+    // I3 · 兑换码 / 付费授权（GDPR 双条件口径）
+    redeem_codes: await cnt(`SELECT count(*) c FROM redeem_codes WHERE redeemed_by=$1`, [String(uid)]),
+    entitlement_grants: await cnt(`SELECT count(*) c FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (${linkSub})`, [String(uid)]),
   };
   // 双条件删除六表 + 用户侧同意/映射/会话
   await query(`DELETE FROM anon_chat_rate WHERE anon_id IN (${linkSub})`, [uid]);
@@ -935,6 +1098,9 @@ async function handleDelete(req, res) {
   await query(`DELETE FROM messages WHERE conversation_id IN (SELECT id FROM conversations WHERE user_id=$1 OR anon_id IN (${linkSub}))`, [uid]);
   await query(`DELETE FROM conversations WHERE user_id=$1 OR anon_id IN (${linkSub})`, [uid]);
   await query(`DELETE FROM charts WHERE user_id=$1 OR anon_id IN (${linkSub})`, [uid]);
+  // I3 · 先删付费授权（FK source_code ON DELETE SET NULL），再删核销记录
+  await query(`DELETE FROM entitlement_grants WHERE grantee_id=$1 OR grantee_id IN (${linkSub})`, [String(uid)]);
+  await query(`DELETE FROM redeem_codes WHERE redeemed_by=$1`, [String(uid)]);
   await query(`DELETE FROM user_agreements WHERE user_id=$1`, [uid]);
   await query(`DELETE FROM user_anon_link WHERE user_id=$1`, [uid]);
   await query(`DELETE FROM users WHERE id=$1`, [uid]); // 级联 sessions
@@ -973,6 +1139,9 @@ const server = createServer(async (req, res) => {
         llmPreset: !!(process.env.LLM_BASE_URL && process.env.LLM_API_KEY && process.env.LLM_MODEL),
         appName: '辰箓',
         icpNo: process.env.ICP_NO || '域名备案中 · 暂以 IP 访问',
+        // I3 · 付费墙口径（供前端展示 + test-paywall 探测）
+        aiFreeRounds: FREE_DAILY_ROUNDS,
+        paidDailyRounds: PAID_DAILY_ROUNDS,
       });
     }
     if (req.method === 'GET' && url === '/api/cities') return sendJson(res, 200, { cities: listAllCities() });
@@ -989,6 +1158,10 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && url === '/api/auth/login') return await handleLogin(req, res);
     if (req.method === 'POST' && url === '/api/auth/logout') return await handleLogout(req, res);
     if (req.method === 'GET' && url === '/api/auth/me') return await handleMe(req, res);
+    // I3 · 配额查询 / 兑换码核销 / 管理端发码
+    if (req.method === 'GET' && url === '/api/quota') return await handleQuota(req, res);
+    if (req.method === 'POST' && url === '/api/redeem') return await handleRedeem(req, res);
+    if (url === '/api/admin/redeem-codes') return await handleAdminRedeemCodes(req, res);
     if (req.method === 'POST' && url === '/api/auth/reset') return await handleResetRequest(req, res);
     if (req.method === 'POST' && url === '/api/auth/reset/confirm') return await handleResetConfirm(req, res);
     if (req.method === 'POST' && url === '/api/report') return await handleReport(req, res);
@@ -1028,6 +1201,21 @@ async function main() {
     process.exit(1);
   }
   server.listen(PORT, '0.0.0.0', () => console.log(`辰箓 已启动： http://0.0.0.0:${PORT}`));
+
+  // I3 · C7 进程内每日备份定时器（系统 cron 之外的双保险；fail-open，异常仅告警不阻断）
+  const backupTimer = setInterval(() => {
+    const backupScript = join(__dirname, 'tools', 'backup-daily.mjs');
+    execFile(process.execPath, [backupScript], { timeout: 300000 }, (err) => {
+      if (err) console.error('[backup] 定时备份失败（不阻断服务）：', err.message);
+    });
+  }, 24 * 3600 * 1000);
+  backupTimer.unref(); // 不阻止进程退出（但 server.listen 已保持事件循环存活）
+  // 启动后 10 分钟触发首次兜底备份（避免要等满 24h 才有首份）
+  setTimeout(() => {
+    execFile(process.execPath, [join(__dirname, 'tools', 'backup-daily.mjs')], { timeout: 300000 }, (err) => {
+      if (err) console.error('[backup] 启动备份失败（不阻断服务）：', err.message);
+    });
+  }, 10 * 60 * 1000).unref();
 }
 main();
 
