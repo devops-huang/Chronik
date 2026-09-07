@@ -498,6 +498,23 @@ function emitFallbackSSE(res, card, conversationId) {
  *
  * 返回 null 表示放行；返回 { code, message } 表示应直接 429 拦截。
  */
+/**
+ * P0-9 · 输入侧硬拦截拒答：对已命中 A–J 内容禁区的用户输入，在 SSE 流启动前直接下发合规拒答。
+ * 与输出侧 SSE 拒答契约一致（前端统一走 j.blocked 渲染），不进 AI、不落 messages。
+ * @param {import('http').ServerResponse} res
+ * @param {string} category 命中类别 key（A–J）
+ */
+function emitRefusalSSE(res, category) {
+  applySecurityHeaders(res);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive',
+  });
+  res.write(`data: ${JSON.stringify({ error: getRefusal(category), blocked: true, category })}\n\n`);
+  res.write(`data: [DONE]\n\n`);
+  res.end();
+}
+
 async function checkAiBudget(ctx) {
   try {
     const used = await query(
@@ -534,6 +551,12 @@ async function handleChat(req, res) {
   }
   // P0-9 · 高风险倾向判定（健康/投资/法律）。仅作"倾向"识别，不做确定性断言，避免正常命理问答被误杀。
   const highRisk = isHighRisk(message.content);
+  // P0-9 · 输入侧硬拦截：命中 A–J 内容禁区（现有 isBlocked）直接拒答，不进 AI、不落 messages
+  const inputBlock = isBlocked(message.content);
+  if (inputBlock.hit) {
+    console.log('[chat] 输入命中内容禁区 %s，硬拦截拒答', inputBlock.category);
+    return emitRefusalSSE(res, inputBlock.category);
+  }
   const { chartId, chartContext, conversationId } = body;
   // 游客限 3 轮问答，第 4 轮起提示登录（不调用 LLM，防刷额度）
   if (ctx.isGuest) {
