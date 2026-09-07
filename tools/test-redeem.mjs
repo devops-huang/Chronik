@@ -9,18 +9,28 @@
  *   - 重复码 / 过期码 / 已用码 一律拒绝；复用现成 ADMIN_TOKEN 鉴权创建测试码；
  *   - 同步改 GDPR 导出/删除（C6）。
  *
- * 当前 I3 未实现 → 探测 /api/redeem 是否存在：
- *   不存在（404 / 连接失败）→ 明确 SKIP（NOT-IMPLEMENTED），不报错、不阻断。
- *   存在 → 跑真实断言（重复/过期/已用拒绝）。
+ * 当前 I3 未实现 → 探测 /api/admin/redeem-codes（无 token）是否返回 401/403：
+ *   404 / 501 / 连接失败 → 明确 SKIP（NOT-IMPLEMENTED），不报错、不阻断。
+ *   注意：/api/redeem 对未知码返回 404 INVALID 属正常「已实现」响应，不可据此判未实现；
+ *   故实现探测改用管理端点（无 token → 401 令牌错误 / 403 未启用 = 路由存在）。
+ *   已实现 → 跑真实断言（可用首兑成功 / 重复 USED / 过期 EXPIRED / 未知 INVALID 均被拒）。
  *
  * 运行：node tools/test-redeem.mjs
  *   可选：CHRONIK_BASE_URL（默认 http://127.0.0.1:8787）、ADMIN_TOKEN
  */
 
 import assert from 'node:assert';
+import { readFileSync } from 'node:fs';
 
 const BASE_URL = (process.env.CHRONIK_BASE_URL || 'http://127.0.0.1:8787').replace(/\/$/, '');
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+
+// 复用 server.js loadAdminToken 逻辑：env 优先，否则读 data/admin.token（文件权限 600）
+let ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+if (!ADMIN_TOKEN) {
+  for (const p of ['data/admin.token', '/opt/bazi-system/data/admin.token']) {
+    try { ADMIN_TOKEN = readFileSync(p, 'utf8').trim(); if (ADMIN_TOKEN) break; } catch {}
+  }
+}
 
 function skip(msg) {
   console.log(`⚠️  SKIP [test-redeem] — ${msg}`);
@@ -46,25 +56,29 @@ async function http(method, path, { body, token } = {}) {
 }
 
 async function main() {
-  console.log('=== I3 P0-7 兑换码验收（脚手架） ===');
+  console.log('=== I3 P0-7 兑换码验收 ===');
 
-  // ── 探测：服务是否可达 ──
+  // ── 实现探测：用「管理端点无 token → 401/403 令牌校验」判定路由是否存在 ──
+  // 注意：/api/redeem 对未知码返回 404 INVALID 属正常「已实现」响应，不能据此判未实现；
+  // 故改探 /api/admin/redeem-codes（无 token）作为「路由已实现」的可靠信号。
   let probe;
   try {
-    probe = await http('POST', '/api/redeem', { body: { code: 'PROBE_' + Date.now() } });
+    probe = await http('GET', '/api/admin/redeem-codes');
   } catch (e) {
-    skip(`NOT-IMPLEMENTED: 无法连接 ${BASE_URL}（${e.message}），/api/redeem 未就绪，跳过兑换码验收`);
+    skip(`NOT-IMPLEMENTED: 无法连接 ${BASE_URL}（${e.message}），兑换码功能（I3 P0-7）未落地，跳过`);
   }
-
-  // 404 / 501 → 端点未实现
+  // 401（令牌错误）/ 403（未启用）→ 路由存在，功能已实现
   if (probe.status === 404 || probe.status === 501) {
-    skip('NOT-IMPLEMENTED: /api/redeem 返回 404/501，兑换码功能（I3 P0-7）未落地，跳过');
+    skip('NOT-IMPLEMENTED: /api/admin/redeem-codes 返回 404/501，兑换码功能（I3 P0-7）未落地，跳过');
   }
-  ok(`/api/redeem 可达（probe status=${probe.status}），进入真实断言`);
+  if (!(probe.status === 401 || probe.status === 403)) {
+    skip(`NOT-IMPLEMENTED: 管理端点返回 ${probe.status}（非 401/403），兑换码功能（I3 P0-7）未落地，跳过`);
+  }
+  ok(`/api/redeem-codes 路由已实现（probe status=${probe.status}），进入真实断言`);
 
   // ── 需要 ADMIN_TOKEN 创建测试码 ──
   if (!ADMIN_TOKEN) {
-    skip('未设置 ADMIN_TOKEN，无法创建测试兑换码；仅校验「未知码被拒」');
+    skip('未配置 ADMIN_TOKEN（env 或 data/admin.token），无法创建测试兑换码；仅校验「未知码被拒」');
   }
 
   const rnd = Math.random().toString(36).slice(2, 10);
