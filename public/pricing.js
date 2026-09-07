@@ -1,10 +1,10 @@
-/* 辰箓 · 会员定价页（P0-8）
- * 年卡主推 ¥99/年（原价 ¥199 划线仅为展示）。
+/* 辰箓 · 结缘堂定价页（P0-8）
+ * 年卡主推 99 缘券/年（原价 199 缘券 划线仅为展示）。
  * 价格常量集中此处：运营改价只动这一处即可全局生效。
  */
 (() => {
   // ── 价格常量（运营待定，改此一处即可）──
-  const PLAN_PRICE_YEAR = 99;      // 年卡主推价（Edward 拍板 ¥99/年）
+  const PLAN_PRICE_YEAR = 99;      // 年卡主推价（Edward 拍板 99 缘券/年）
   const PLAN_PRICE_ORIGINAL = 199; // 原价划线展示（纯展示，可改或置 0 隐藏）
 
   const $ = (id) => document.getElementById(id);
@@ -15,7 +15,7 @@
     const y2 = $('priceYear2'); if (y2) y2.textContent = PLAN_PRICE_YEAR;
     const orig = $('priceOrig');
     if (orig) {
-      if (PLAN_PRICE_ORIGINAL > PLAN_PRICE_YEAR) orig.textContent = '¥' + PLAN_PRICE_ORIGINAL;
+      if (PLAN_PRICE_ORIGINAL > PLAN_PRICE_YEAR) orig.textContent = PLAN_PRICE_ORIGINAL + ' 缘券';
       else orig.style.display = 'none';
     }
   }
@@ -59,7 +59,7 @@
           const msg = $('redeemSuccessMsg');
           if (msg && d.expiresAt) {
             const exp = new Date(d.expiresAt);
-            msg.textContent = `你的年卡会员已生效，有效期至 ${exp.getFullYear()}-${String(exp.getMonth() + 1).padStart(2, '0')}-${String(exp.getDate()).padStart(2, '0')}，每日 30 轮 AI 答疑已解锁。`;
+            msg.textContent = `你的年卡结缘堂已生效，有效期至 ${exp.getFullYear()}-${String(exp.getMonth() + 1).padStart(2, '0')}-${String(exp.getDate()).padStart(2, '0')}，每日 30 轮 AI 答疑已解锁。`;
           }
         }
         status('激活成功！', 'ok');

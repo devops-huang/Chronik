@@ -246,7 +246,7 @@
   function setSendLoading(on) {
     withEl('btnSend', (e) => { e.classList.toggle('loading', !!on); e.disabled = !!on; });
   }
-  // I3 · 付费态 / 额度展示：登录后拉取 /api/quota，显示「今日剩 X 轮」+ 会员徽标
+  // I3 · 付费态 / 额度展示：登录后拉取 /api/quota，显示「今日剩 X 轮」+ 结缘堂徽标
   function refreshQuota() {
     fetch('/api/quota').then((r) => r.ok ? r.json() : null).then((d) => {
       if (!d) return;
@@ -358,7 +358,7 @@
         removeThinkingBubble();
         if (d.paywall) {
           addMsg('ai',
-            '🔒 今日 AI 额度已用尽<br/>升级会员解锁每日 30 轮问答：<a href="/pricing.html">查看会员方案 →</a>',
+            '🔒 今日 AI 额度已用尽<br/>升级结缘堂解锁每日 30 轮问答：<a href="/pricing.html">查看结缘堂方案 →</a>',
             true);
           return;
         }

@@ -61,6 +61,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',  // 补全 'jpg'/'jpeg' 的 MIME（/payment-qr.jpg 此前返 octet-stream）
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf',
 };
 
@@ -557,7 +558,7 @@ async function handleChat(req, res) {
       limit: quota.limit,
       error: ctx.isGuest
         ? '免费问答已达 3 轮/日上限，登录后即可继续追问 👇'
-        : '今日 AI 额度已用尽，升级会员解锁每日 30 轮问答 👑',
+        : '今日 AI 额度已用尽，升级结缘堂解锁每日 30 轮问答 👑',
     });
   }
   // P0-9 · 高风险倾向判定（健康/投资/法律）。仅作"倾向"识别，不做确定性断言，避免正常命理问答被误杀。

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>辰箓 · 会员方案</title>
+  <title>辰箓 · 结缘堂方案</title>
   <style>
     :root{
       --bg:#0e0c08; --panel:#171310; --panel-2:#1f1a14; --line:#33291d;
@@ -27,12 +27,12 @@
       border-radius:18px;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);margin-bottom:22px}
     .plan-tag{display:inline-block;font-size:12px;color:#1a140a;background:linear-gradient(180deg,var(--gold-bright),var(--gold));
       padding:3px 12px;border-radius:20px;font-weight:700;letter-spacing:1px;margin-bottom:14px}
-    .price-row{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+    .price-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;margin-bottom:6px}
     .price{font-size:46px;font-weight:800;color:var(--gold-bright);line-height:1}
-    .price .cur{font-size:22px;margin-right:2px}
     .price .per{font-size:14px;color:var(--muted);font-weight:500;margin-left:4px}
     .orig{font-size:17px;color:var(--muted);text-decoration:line-through}
     .save{font-size:12.5px;color:var(--ok);margin-left:6px}
+    .price-note{font-size:11.5px;color:var(--muted);margin-top:6px;letter-spacing:.5px}
     .features{list-style:none;padding:0;margin:18px 0 4px}
     .features li{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px;color:var(--txt)}
     .features li:last-child{border-bottom:none}
@@ -76,7 +76,7 @@
 
   <div class="wrap">
     <div class="hero">
-      <h1>辰箓会员 · 解锁无限命理答疑</h1>
+      <h1>辰箓结缘堂 · 解锁无限命理答疑</h1>
       <p>每日 30 轮 AI 命理解读 · 永久保存所有命盘与历史</p>
     </div>
 
@@ -84,23 +84,24 @@
     <div class="card">
       <span class="plan-tag">年卡主推</span>
       <div class="price-row">
-        <div class="price"><span class="cur">¥</span><span id="priceYear">99</span><span class="per">/年</span></div>
-        <span class="orig" id="priceOrig">¥199</span>
-        <span class="save">省 ¥100</span>
+        <div class="price"><span id="priceYear">99</span><span class="per">缘券/年</span></div>
+        <span class="orig" id="priceOrig">199 缘券</span>
+        <span class="save">省 100 缘券</span>
+        <div class="price-note">（1 缘券 = 1 元）</div>
       </div>
       <ul class="features">
         <li><span class="ic">✓</span><span>每日 <b style="color:var(--gold-bright)">30 轮</b> AI 命理答疑（免费仅 3 轮/日）</span></li>
         <li><span class="ic">✓</span><span>云端永久保存全部命盘、报告与对话历史</span></li>
-        <li><span class="ic">✓</span><span>会员专属深度解读，无游客轮次限制</span></li>
+        <li><span class="ic">✓</span><span>结缘堂专属深度解读，无游客轮次限制</span></li>
         <li><span class="ic">✓</span><span>一次付费，全年畅享，随时可取消自动续费（如有）</span></li>
       </ul>
 
       <!-- 个人收款码占位 -->
       <div class="pay-box">
-        <div class="qr" id="qrBox">收款码占位<br>（替换 public/ 下二维码图片）</div>
+        <div class="qr" id="qrBox"><img src="/payment-qr.jpg" alt="微信支付收款码" loading="lazy"></div>
         <div class="hint">
-          扫码付款 <b>¥<span id="priceYear2">99</span>/年</b> 后，<br>
-          凭转账<b>备注 / 订单号</b>联系运营获取<b>兑换码</b>，即可激活会员。
+          扫码付款 <b><span id="priceYear2">99</span> 缘券/年</b> 后，<br>
+          凭转账<b>备注 / 订单号</b>联系运营获取<b>兑换码</b>，即可激活结缘堂。
         </div>
       </div>
     </div>
@@ -111,13 +112,13 @@
         <h3>🎟️ 我有兑换码</h3>
         <div class="row">
           <input id="redeemCode" type="text" placeholder="输入兑换码（如 YEAR-XXXX-XXXX）" autocomplete="off">
-          <button class="btn" id="redeemBtn">激活会员</button>
+          <button class="btn" id="redeemBtn">激活结缘堂</button>
         </div>
         <div class="status info" id="redeemStatus">已付款并取得兑换码？在此激活。</div>
       </div>
       <div class="success" id="redeemSuccess">
-        <div class="big">🎉 会员已激活！</div>
-        <div id="redeemSuccessMsg">你的年卡会员已生效，每日 30 轮 AI 答疑已解锁。</div>
+        <div class="big">🎉 结缘堂已激活！</div>
+        <div id="redeemSuccessMsg">你的年卡结缘堂已生效，每日 30 轮 AI 答疑已解锁。</div>
         <a class="btn" href="/studio.html" style="display:inline-block;margin-top:12px;text-decoration:none">前往推演阁体验 →</a>
       </div>
     </div>
@@ -133,7 +134,7 @@
     <div class="card" style="margin-top:22px">
       <div class="section-title">💎 退款说明</div>
       <div class="refund">
-        <p><b>7 天无理由退款：</b>自兑换码激活之日起 7 天内，如对会员服务不满意，可凭兑换码联系运营申请全额退款（未使用或极少使用场景下受理）。</p>
+        <p><b>7 天无理由退款：</b>自兑换码激活之日起 7 天内，如对结缘堂服务不满意，可凭兑换码联系运营申请全额退款（未使用或极少使用场景下受理）。</p>
         <p><b>不予退款情形：</b>激活后已大量使用 AI 答疑（如消耗超过 50% 年度额度）或存在疑似滥用 / 转售兑换码行为的，原则上不予退款，但可协商折算。</p>
         <p><b>退款方式：</b>原路退回至付款账户，到账周期依支付渠道而定（一般 3–7 个工作日）。如有争议，以运营沟通结果为准。</p>
         <p style="color:var(--gold)">注：当前为个人收款码试运行，正式在线支付与自动退款通道上线后，退款将改为系统内一键处理。</p>
