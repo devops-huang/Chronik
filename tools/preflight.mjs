@@ -6,7 +6,10 @@
  * 禁止发版。串联顺序（依据任务规范，固定不可调）：
  *
  *   smoke.mjs → verify-i0.mjs → qa-gates.mjs → test-content-policy.mjs →
- *   test-gdpr.mjs → test-auth.mjs → test-chart.mjs → test-report.mjs
+ *   test-gdpr.mjs → test-auth.mjs → test-chart.mjs → test-report.mjs → test-pipeline.mjs
+ *
+ *   注：verify-i0 与 test-pipeline 并存——两者分别来自两份 QA 任务规范的 8 脚本清单
+ *   （一份含 verify-i0、一份含 test-pipeline），合并后共 9 项，确保两条真实链路都不被遗漏。
  *
  * fail-open 策略（依据工作区硬约束「所有检查 fail-open」）：
  *   - 脚本文件缺失            → SKIP（记录）
@@ -44,6 +47,7 @@ const SCRIPTS = [
   { name: 'test-auth',           file: 'tools/test-auth.mjs',           args: [],                            envDependent: false },
   { name: 'test-chart',          file: 'tools/test-chart.mjs',          args: [],                            envDependent: false },
   { name: 'test-report',         file: 'tools/test-report.mjs',         args: [],                            envDependent: false },
+  { name: 'test-pipeline',       file: 'tools/test-pipeline.mjs',       args: [],                            envDependent: false },
 ];
 
 // 环境不可用的典型标记：envDependent 脚本失败时据此判定为 SKIP 而非 FAIL。
