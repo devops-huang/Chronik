@@ -27,6 +27,8 @@ import { loadLlmConfig, saveLlmConfig, maskKey } from './lib/llmConfig.js';
 import { isBlocked, getRefusal, DISCLAIMER_L2, DISCLAIMER_L3, isHighRisk, CHAT_ROLE_DECLARATION } from './lib/content-policy.js';
 // I3 · 服务端权威配额（P0-6）：统一配额入口 + 付费授权查询
 import { checkAiQuota, getQuotaInfo, getEntitlement, FREE_DAILY_ROUNDS, PAID_DAILY_ROUNDS } from './lib/quota.js';
+// I2 · 留存节律调度器（Backend-B）：进程内轻量扫描器，复用 lib/db.js 与 tyme4ts
+import { runRetentionScan } from './lib/retention.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC = join(__dirname, 'public');
@@ -1021,6 +1023,8 @@ const TRACK_ACTIONS = new Set([
   'pricing_viewed', 'paywall_hit', 'redeem_success',
   'login_wall_view', 'home_anon_view',
   'share_generated', 'source_self_report',
+  // I2 · 召回 / 站内信归因埋点
+  'recall_open', 'recall_click', 'notification_open',
 ]);
 const trackBuckets = new Map(); // key → 最近时间戳数组（滑动窗口 1s）
 function trackAllowed(key) {
@@ -1053,6 +1057,125 @@ async function handleCspReport(req, res) {
       rep['document-uri'] || '-', rep['violated-directive'] || '-', rep['blocked-uri'] || '-');
   }
   res.writeHead(204); res.end();
+}
+
+// ── I2 · 站内信基础设施（Backend-A）──
+// 偏好键白名单：未知键忽略，值强制布尔。
+const NOTIF_DEFAULT_SETTINGS = {
+  solar_term: true, liunian: true, destiny_node: true, birthday: true, email: false,
+};
+const NOTIF_KNOWN_KEYS = Object.keys(NOTIF_DEFAULT_SETTINGS);
+
+/** 读取并归一化用户通知偏好（缺省回默认全开；键缺失或类型异常均安全降级）。 */
+function normalizeNotificationSettings(raw) {
+  const out = { ...NOTIF_DEFAULT_SETTINGS };
+  if (raw && typeof raw === 'object') {
+    for (const k of NOTIF_KNOWN_KEYS) {
+      if (k in raw) out[k] = Boolean(raw[k]);
+    }
+  }
+  return out;
+}
+
+// GET /api/notifications?limit=30&offset=0 —— 需登录；列表按 created_at DESC，附 total/unread
+async function handleNotificationsList(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const uid = Number(user.id); // 写/读 BIGINT 一律传数字，规避 bigint=text 坑
+  const u = new URL(req.url, 'http://x');
+  const limit = Math.min(Math.max(Number(u.searchParams.get('limit')) || 30, 1), 100);
+  const offset = Math.max(Number(u.searchParams.get('offset')) || 0, 0);
+  try {
+    const list = await query(
+      `SELECT id, type, ref_period, title, body, payload, read, created_at
+       FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+      [uid, limit, offset]
+    );
+    const total = await query('SELECT count(*)::bigint AS c FROM notifications WHERE user_id=$1', [uid]);
+    const unread = await query('SELECT count(*)::bigint AS c FROM notifications WHERE read=false AND user_id=$1', [uid]);
+    sendJson(res, 200, {
+      notifications: list.rows,
+      total: Number(total.rows[0].c || 0),
+      unread: Number(unread.rows[0].c || 0),
+    });
+  } catch (e) {
+    // fail-open：列表读取失败不阻断，返回安全空态（参考 checkAiBudget 写法）
+    console.error('[notif] 列表读取失败（fail-open）：', e.message);
+    sendJson(res, 200, { notifications: [], total: 0, unread: 0 });
+  }
+}
+
+// GET /api/notifications/unread-count —— 需登录
+async function handleNotificationUnreadCount(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const uid = Number(user.id);
+  try {
+    const r = await query('SELECT count(*)::bigint AS c FROM notifications WHERE read=false AND user_id=$1', [uid]);
+    sendJson(res, 200, { count: Number(r.rows[0].c || 0) });
+  } catch (e) {
+    console.error('[notif] 未读计数失败（fail-open）：', e.message);
+    sendJson(res, 200, { count: 0 });
+  }
+}
+
+// POST /api/notifications/:id/read —— 需登录，校验归属当前用户
+async function handleNotificationRead(req, res, id) {
+  const user = await requireUser(req, res); if (!user) return;
+  const uid = Number(user.id);
+  try {
+    await query('UPDATE notifications SET read=true WHERE id=$1 AND user_id=$2', [Number(id), uid]);
+    sendJson(res, 200, { ok: true, read: true });
+  } catch (e) {
+    console.error('[notif] 标已读失败（fail-open）：', e.message);
+    sendJson(res, 200, { ok: true, read: true });
+  }
+}
+
+// POST /api/notifications/read-all —— 需登录，批量标已读，返回受影响的行数
+async function handleNotificationReadAll(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const uid = Number(user.id);
+  try {
+    const r = await query('UPDATE notifications SET read=true WHERE user_id=$1 AND read=false', [uid]);
+    sendJson(res, 200, { ok: true, affected: r.rowCount || 0 });
+  } catch (e) {
+    console.error('[notif] 全部已读失败（fail-open）：', e.message);
+    sendJson(res, 200, { ok: true, affected: 0 });
+  }
+}
+
+// GET /api/notifications/settings —— 需登录，缺省回默认全开
+async function handleNotificationSettingsGet(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const uid = Number(user.id);
+  try {
+    const r = await query('SELECT notification_settings FROM users WHERE id=$1', [uid]);
+    const settings = normalizeNotificationSettings(r.rows[0]?.notification_settings);
+    sendJson(res, 200, { settings });
+  } catch (e) {
+    console.error('[notif] 读取偏好失败（fail-open）：', e.message);
+    sendJson(res, 200, { settings: { ...NOTIF_DEFAULT_SETTINGS } });
+  }
+}
+
+// PUT /api/notifications/settings —— 需登录，body {settings:{...}}；仅接受已知键，值强制布尔，未知键忽略
+async function handleNotificationSettingsPut(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const uid = Number(user.id);
+  let body;
+  try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: e.message }); }
+  try {
+    const incoming = (body && body.settings && typeof body.settings === 'object') ? body.settings : {};
+    const cur = await query('SELECT notification_settings FROM users WHERE id=$1', [uid]);
+    const merged = normalizeNotificationSettings(cur.rows[0]?.notification_settings);
+    for (const k of NOTIF_KNOWN_KEYS) {
+      if (k in incoming) merged[k] = Boolean(incoming[k]);
+    }
+    await query('UPDATE users SET notification_settings=$1, updated_at=now() WHERE id=$2', [JSON.stringify(merged), uid]);
+    sendJson(res, 200, { ok: true, settings: merged });
+  } catch (e) {
+    console.error('[notif] 写入偏好失败（fail-open）：', e.message);
+    sendJson(res, 200, { ok: true, settings: { ...NOTIF_DEFAULT_SETTINGS } });
+  }
 }
 
 // ── 数据权利：导出 / 一键删除（R2† · V1 数据权利闭环 / V2 孤儿删除完整性）──
@@ -1133,6 +1256,7 @@ async function claimAnonIfPresent(req, res, userId) {
 const server = createServer(async (req, res) => {
   const url = req.url.split('?')[0];
   const idMatch = url.match(/^\/api\/charts\/(\d+)$/);
+  const notifReadMatch = url.match(/^\/api\/notifications\/(\d+)\/read$/);
   try {
     if (req.method === 'GET' && url === '/api/health') return await handleHealth(req, res);
     if (req.method === 'GET' && url === '/api/config') {
@@ -1169,6 +1293,13 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && url === '/api/report') return await handleReport(req, res);
     if (req.method === 'POST' && url === '/api/track') return await handleTrack(req, res);
     if (req.method === 'POST' && url === '/api/csp-report') return await handleCspReport(req, res);
+    // I2 · 站内信基础设施（Backend-A）路由
+    if (req.method === 'GET' && url === '/api/notifications') return await handleNotificationsList(req, res);
+    if (req.method === 'GET' && url === '/api/notifications/unread-count') return await handleNotificationUnreadCount(req, res);
+    if (req.method === 'GET' && url === '/api/notifications/settings') return await handleNotificationSettingsGet(req, res);
+    if (req.method === 'PUT' && url === '/api/notifications/settings') return await handleNotificationSettingsPut(req, res);
+    if (req.method === 'POST' && url === '/api/notifications/read-all') return await handleNotificationReadAll(req, res);
+    if (req.method === 'POST' && notifReadMatch) return await handleNotificationRead(req, res, notifReadMatch[1]);
     if (req.method === 'POST' && url === '/api/me/export') return await handleExport(req, res);
     if (req.method === 'POST' && url === '/api/me/delete') return await handleDelete(req, res);
     if (req.method === 'GET' && url === '/api/home') return await handleHome(req, res);
@@ -1218,6 +1349,15 @@ async function main() {
       if (err) console.error('[backup] 启动备份失败（不阻断服务）：', err.message);
     });
   }, 10 * 60 * 1000).unref();
+
+  // I2 · 留存节律调度器（Backend-B）：启动 10 分钟后首跑一次，之后每 24h 轻量扫描。
+  // 仿 backupTimer 写法：fail-open，异常仅 console.error 不阻断主服务；unref 不阻止进程退出。
+  setTimeout(() => {
+    runRetentionScan().catch((e) => console.error('[retention] 首跑异常（不阻断服务）：', e && e.message));
+  }, 10 * 60 * 1000).unref();
+  setInterval(() => {
+    runRetentionScan().catch((e) => console.error('[retention] 周期扫描异常（不阻断服务）：', e && e.message));
+  }, 24 * 60 * 60 * 1000).unref();
 }
 main();
 

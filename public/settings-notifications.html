@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>辰箓 · 提醒设置</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  .container{ max-width:760px; margin:0 auto; padding:24px 22px 60px }
+  .settings-card{ background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line);
+    border-radius:var(--r); padding:24px; box-shadow:var(--shadow); margin-top:22px }
+  .settings-card h2{ font-size:19px; color:var(--gold-bright); letter-spacing:3px; margin:0 0 4px; font-family:var(--font-cn) }
+  .settings-sub{ font-size:12.5px; color:var(--ink-dim); margin:0 0 20px; line-height:1.7 }
+  .rhythm-note{ font-size:12px; color:var(--jade); background:rgba(95,208,192,.08);
+    border:1px solid rgba(95,208,192,.22); border-radius:10px; padding:10px 12px; margin-bottom:18px; line-height:1.65 }
+  .switch-row{ display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:15px 0; border-bottom:1px solid var(--line) }
+  .switch-row:last-of-type{ border-bottom:none }
+  .switch-text .switch-label{ font-size:15px; color:var(--ink); display:block; margin-bottom:3px }
+  .switch-text .switch-desc{ font-size:12px; color:var(--ink-dim); line-height:1.55 }
+  .switch{ position:relative; width:46px; height:26px; flex:0 0 auto; cursor:pointer }
+  .switch input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer }
+  .switch .track{ position:absolute; inset:0; border-radius:20px; background:#0f1420; border:1px solid var(--line); transition:.18s }
+  .switch .knob{ position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
+    background:var(--ink-dim); transition:.18s }
+  .switch input:checked + .track{ background:linear-gradient(135deg,var(--gold),#caa765); border-color:var(--gold) }
+  .switch input:checked + .track + .knob{ left:23px; background:#1a140a }
+  .switch input:disabled{ cursor:not-allowed }
+  .switch input:disabled + .track{ opacity:.5 }
+  .email-row{ margin-top:14px; padding:14px; border:1px dashed var(--line); border-radius:12px;
+    display:flex; align-items:center; justify-content:space-between; gap:14px; opacity:.7 }
+  .email-row .switch-desc .tag{ font-size:11px; color:var(--warn); border:1px solid rgba(224,178,90,.4);
+    border-radius:12px; padding:1px 8px; margin-left:6px }
+  .save-bar{ margin-top:22px; display:flex; gap:12px; align-items:center }
+  .save-bar .status{ font-size:13px; min-height:18px; flex:1 }
+  .save-bar .status.ok{ color:var(--jade) } .save-bar .status.err{ color:var(--red) }
+  .login-prompt{ text-align:center; padding:40px 16px; color:var(--ink-dim); line-height:2 }
+  .login-prompt a{ color:var(--gold-bright) }
+  .site-footer{ margin-top:28px; padding:16px 12px; text-align:center; font-size:12px; color:#8a7a5c; line-height:1.7; border-top:1px solid rgba(190,160,90,.18) }
+  .site-footer .footer-sep{ margin:0 8px; opacity:.5 }
+  .site-footer a{ color:var(--gold-bright); text-decoration:none }
+  @media(max-width:760px){ .settings-card{ padding:18px } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand" onclick="location.href='/index.html'">
+    <div class="seal">箓</div>
+    <div><div class="cn">辰箓</div><div class="en">Chen Lu · Destiny</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="/index.html">天机阁</a>
+    <a href="/studio.html">推演阁</a>
+    <a href="/pricing.html">结缘堂</a>
+  </div>
+  <div class="user-menu">
+    <span id="bellMount" class="bell-mount"></span>
+    <div class="avatar" id="avatar">辰</div>
+    <span id="uname" style="color:var(--ink-dim);font-size:13px"></span>
+    <a id="btnLoginLink" href="/login.html" class="nav-login" hidden>登录 / 注册</a>
+    <button id="btnLogout" style="padding:8px 14px;min-height:44px">退出</button>
+  </div>
+</nav>
+
+<main class="container">
+  <div id="pageBody">
+    <div class="loading">加载中…</div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <span>本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议</span>
+  <span class="footer-sep">·</span>
+  <a href="/privacy.html">隐私政策</a>
+</footer>
+
+<script src="/bell.js"></script>
+<script src="/settings-notifications.js"></script>
+</body>
+</html>

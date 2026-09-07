@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>辰箓 · 你的命盘仍在</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  body{ background:radial-gradient(1200px 700px at 75% -10%, rgba(95,208,192,.10), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, rgba(232,201,138,.10), transparent 55%), var(--bg);
+    min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px 18px; box-sizing:border-box; color:var(--ink) }
+  .r-card{ max-width:560px; width:100%; background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line); border-radius:20px; padding:40px 32px; box-shadow:var(--shadow); text-align:center }
+  .r-seal{ width:54px; height:54px; border-radius:14px; margin:0 auto 18px;
+    background:linear-gradient(135deg,var(--gold),#b8924f); color:#1a140a;
+    display:grid; place-items:center; font-family:"Songti SC",serif; font-size:28px; font-weight:800;
+    box-shadow:0 0 26px rgba(232,201,138,.35) }
+  .r-title{ font-family:var(--font-cn); font-size:26px; color:var(--gold-bright); letter-spacing:3px; margin:0 0 14px }
+  .r-sub{ font-size:13.5px; color:var(--ink-dim); line-height:1.8; margin:0 0 22px }
+  .r-summary{ font-family:var(--font-serif); font-size:15px; color:var(--ink); line-height:1.9;
+    background:rgba(95,208,192,.06); border:1px solid rgba(95,208,192,.22); border-radius:12px;
+    padding:16px 18px; margin-bottom:24px }
+  .r-summary .ph{ color:var(--gold-bright); font-family:var(--font-cn); letter-spacing:2px }
+  .r-actions{ display:flex; flex-direction:column; gap:12px }
+  .r-actions a{ display:block; padding:14px; border-radius:12px; font-size:15px; letter-spacing:1px;
+    text-decoration:none; font-family:var(--font-serif); transition:.16s }
+  .r-actions a.primary{ background:linear-gradient(135deg,var(--gold),#caa765); color:#1a140a; font-weight:700 }
+  .r-actions a.primary:hover{ filter:brightness(1.08) }
+  .r-actions a.ghost{ background:transparent; border:1px solid var(--line); color:var(--gold-bright) }
+  .r-actions a.ghost:hover{ border-color:var(--gold) }
+  .r-disclaimer{ font-size:11px; color:var(--ink-dim); line-height:1.7; margin-top:24px;
+    border-top:1px dashed var(--line); padding-top:14px }
+  @media(max-width:520px){ .r-card{ padding:30px 20px } .r-title{ font-size:22px } }
+</style>
+</head>
+<body>
+  <div class="r-card">
+    <div class="r-seal">箓</div>
+    <h1 class="r-title">你的命盘仍在</h1>
+    <p class="r-sub">许久未见，你的命理推演记录一直为你保留。<br>登录即可查看流年与命宫的最新变化。</p>
+    <div class="r-summary">
+      <span class="ph">你的命盘仍在 —— 登录查看流年 / 命宫变化</span>
+    </div>
+    <div class="r-actions">
+      <a class="primary" id="btnFlow" href="/studio.html">查看我的流年 / 命宫变化</a>
+      <a class="ghost" id="btnAsk" href="/studio.html">继续 AI 答疑</a>
+    </div>
+    <div class="r-disclaimer">
+      以上内容为传统命理文化的娱乐性解读，由 AI 生成，不构成医疗、法律、投资或任何专业建议。
+    </div>
+  </div>
+  <script src="/r.js"></script>
+</body>
+</html>

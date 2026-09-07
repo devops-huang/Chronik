@@ -81,10 +81,38 @@
   function init() {
     renderPrices();
     trackViewed();
+    checkRenewal(); // R5 UI · 登录且距到期 ≤7 天显示续费 Banner
     const btn = $('redeemBtn');
     if (btn) btn.onclick = doRedeem;
     const inp = $('redeemCode');
     if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRedeem(); });
+  }
+
+  // R5 UI（F4）：读 /api/auth/me 的 entitlementExpiresAt；登录且距到期 ≤7 天显示续费 Banner；否则隐藏。
+  // 无新 API，复用现有 me 接口；fail-open：异常/未登录均不显示。
+  async function checkRenewal() {
+    const banner = $('renewBanner');
+    if (!banner) return;
+    try {
+      const r = await fetch('/api/auth/me');
+      if (!r.ok) return; // 未登录或异常 → 不显示
+      const d = await r.json().catch(() => null);
+      if (!d || !d.user) return; // 未登录态 → 不显示
+      const exp = d.user.entitlementExpiresAt;
+      if (!exp) return;
+      const expMs = new Date(exp).getTime();
+      if (isNaN(expMs)) return;
+      const days = Math.ceil((expMs - Date.now()) / 86400000);
+      if (days > 7 || days < 0) { banner.hidden = true; return; } // >7 天或已过期均不提示
+      const dayText = days <= 0 ? '今日' : `${days} 天`;
+      banner.innerHTML = `
+        <div class="b-title">⏳ 结缘堂即将到期</div>
+        <div class="b-text">结缘堂将于 <b>${dayText}</b> 到期，续费（年卡 / 兑换码）可连续持有权益，避免 AI 答疑与命盘保存中断。</div>
+        <div class="b-actions"><a href="#redeem">立即续费 →</a></div>`;
+      banner.hidden = false;
+    } catch {
+      banner.hidden = true; // fail-open：异常静默不显示
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

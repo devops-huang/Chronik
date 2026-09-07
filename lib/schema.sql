@@ -224,3 +224,29 @@ CREATE TABLE IF NOT EXISTS entitlement_grants (
 );
 CREATE INDEX IF NOT EXISTS idx_entitlement_grantee ON entitlement_grants(grantee_type, grantee_id, expires_at);
 
+-- ─────────────────────────────────────────────────────────────
+-- I2 · 站内信基础设施（Backend-A）：notifications 表 + 用户通知偏好
+-- 全部 IF NOT EXISTS / ADD COLUMN IF NOT EXISTS，可重复执行幂等无报错。
+-- ─────────────────────────────────────────────────────────────
+
+-- I2 站内信（所有召回/提醒的统一落点）
+CREATE TABLE IF NOT EXISTS notifications (
+  id          BIGSERIAL PRIMARY KEY,
+  user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type        VARCHAR(24) NOT NULL,   -- solar_term | liunian | destiny_node | birthday | renewal_reminder | recall
+  ref_period  VARCHAR(32),            -- 去重键：节气名/流年干支/生日年/到期批次（NULL 时无唯一约束）
+  title       VARCHAR(120) NOT NULL,
+  body        TEXT NOT NULL,
+  payload     JSONB,                  -- {link, ref, chart_summary, action} 前端渲染用
+  read        BOOLEAN NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at DESC);
+-- 幂等去重：同一用户同一类型同一周期只生成一条（调度器 INSERT ... ON CONFLICT DO NOTHING）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notif_uniq
+  ON notifications(user_id, type, ref_period) WHERE ref_period IS NOT NULL;
+
+-- 用户通知偏好（默认全开；邮件默认关，因 SMTP 未实现）
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_settings JSONB
+  NOT NULL DEFAULT '{"solar_term":true,"liunian":true,"destiny_node":true,"birthday":true,"email":false}'::jsonb;
+
