@@ -1,32 +1,25 @@
 #!/usr/bin/env node
 /**
- * 辰箓 Chronik · I3 P0-6 免费额度验收脚手架（fail-open）
+ * I3 测试脚手架（功能未实现时 skip）
  *
- * 合约（依据 RELEASE-PLAN §I3 P0-6）：
- *   1) lib/quota.js 提供配额查询/扣减，按 Asia/Shanghai 自然日计算；
- *   2) 免费用户每日 AI 轮次上限（默认 3），跨自然日 00:00(上海) 重置；
- *   3) 付费用户（entitlement 未过期）享有更高额度；付费过期自动降级回免费每日额度；
- *   4) 全部新增逻辑 fail-open：异常时回退「允许」，不因限流故障阻断用户；
- *   5) 修正历史缺陷 anon_chat_rate 终身 3 轮 → 每日 3 轮（F2/C5）。
+ * 辰箓 Chronik · I3 免费额度验收脚手架（fail-open）
  *
- * 当前 I3 未实现 → 探测 lib/quota.js 是否存在且导出约定接口；
- * 不存在则明确 SKIP（NOT-IMPLEMENTED），不报错、不阻断。
- * 待 I3 落地，下方断言骨架应直接生效（若接口签名变化，按最终实现对齐）。
+ * 依据任务规范（I3 变现闭环占位测试）：检测目标功能/路由是否就绪。
+ *   - 探活 http://<base>/api/quota
+ *   - 若路由不存在（连接失败 / 404 / 501）/ 功能标志未开
+ *     → console.log('SKIP <用例>') 并 process.exit(0)（不视为失败）。
+ *   - 若路由存在 → 写 1–2 条基础断言（返回剩余次数、额度上限字段）。
  *
  * 运行：node tools/test-quota.mjs
+ *   可选：CHRONIK_BASE_URL（默认 http://127.0.0.1:8787）
  */
 
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
 import assert from 'node:assert';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
-const NOT_IMPL = 'NOT-IMPLEMENTED';
+const BASE_URL = (process.env.CHRONIK_BASE_URL || 'http://127.0.0.1:8787').replace(/\/$/, '');
 
 function skip(msg) {
-  console.log(`⚠️  SKIP [test-quota] — ${msg}`);
+  console.log(`SKIP test-quota — ${msg}`);
   process.exit(0);
 }
 function fail(msg) {
@@ -35,86 +28,58 @@ function fail(msg) {
 }
 function ok(msg) { console.log(`✅ ${msg}`); }
 
-// 极简 .env 加载（项目未引入 dotenv）
-function loadEnv() {
-  try {
-    const txt = readFileSync(resolve(ROOT, '.env'), 'utf8');
-    for (const line of txt.split('\n')) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
-    }
-  } catch { /* 无 .env 则全部依赖 process.env */ }
+async function http(method, path, { body, cookie } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (cookie) headers['Cookie'] = cookie;
+  const res = await fetch(BASE_URL + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let json = null;
+  try { json = await res.json(); } catch { /* 非 JSON */ }
+  return { status: res.status, json };
 }
-loadEnv();
 
 async function main() {
-  console.log('=== I3 P0-6 免费额度验收（脚手架） ===');
+  console.log('=== I3 免费额度验收（脚手架 · 路由探测，未实现则 skip）===');
 
-  // ── 探测：lib/quota.js 是否已实现 ──
-  const quotaPath = resolve(ROOT, 'lib/quota.js');
-  if (!existsSync(quotaPath)) {
-    skip(`${NOT_IMPL}: lib/quota.js 不存在（I3 P0-6 未落地），跳过配额验收`);
-  }
-  let quota;
+  // ── 探测：/api/quota 是否就绪 ──
+  let probe;
   try {
-    quota = await import(quotaPath);
+    probe = await http('GET', '/api/quota');
   } catch (e) {
-    skip(`${NOT_IMPL}: 加载 lib/quota.js 失败（${e.message}），跳过配额验收`);
-  }
-  const missing = ['getQuota', 'consumeQuota'].filter((k) => typeof quota[k] !== 'function');
-  if (missing.length) {
-    skip(`${NOT_IMPL}: lib/quota.js 缺少导出 ${missing.join('/')}（I3 接口未对齐），跳过配额验收`);
-  }
-  ok('lib/quota.js 已存在且导出 getQuota/consumeQuota');
-
-  // ── 运行期断言需要 PG ──
-  const { PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE } = process.env;
-  if (!PGHOST && !PGDATABASE) {
-    skip('PG 不可用（未设置 PGHOST/PGDATABASE），跨日重置/过期降级的运行期断言需 PG，跳过');
-  }
-  let client;
-  try {
-    const pg = (await import('pg')).default;
-    client = new pg.Client({
-      host: PGHOST || '127.0.0.1', port: Number(PGPORT || 5432),
-      user: PGUSER || 'chenlu', password: PGPASSWORD || 'chenlu', database: PGDATABASE || 'chenlu',
-    });
-    await client.connect();
-    ok('PG 连接成功');
-  } catch (e) {
-    skip(`PG 连接失败（${e.message}），跨日重置/过期降级的运行期断言需 PG，跳过`);
+    skip(`NOT-IMPLEMENTED: 无法连接 ${BASE_URL}（${e.message}），/api/quota 未就绪，跳过免费额度验收`);
   }
 
-  // ── I3 落地后的真实断言骨架（接口签名以最终实现为准）──
-  // 下面用注释给出「应验证」的契约；落地后删除注释并按真实返回结构填充即可直接运行。
-  // 任何「合约不匹配 / 签名未知」的异常都转 SKIP（fail-open），不误报阻断；
-  // 只有「接口返回对象存在、但业务值错误」才判 FAIL。
-  try {
-    // ① 跨自然日重置（Asia/Shanghai）
-    //   const yesterday = new Date(Date.now() - 26 * 3600_000); // 确保落在上一上海自然日
-    //   await seedQuotaRow(client, TEST_USER, { date: yesterday, used: 3 });
-    //   const q = await quota.getQuota({ userId: TEST_USER, tz: 'Asia/Shanghai' });
-    //   assert.strictEqual(q.aiRoundsUsed, 0, '跨日后额度应重置为 0');
-    //   assert.ok(q.resetsAt && q.resetsAt > Date.now(), 'resetsAt 应在未来（下一个上海自然日 00:00）');
-
-    // ② 付费过期降级
-    //   await seedEntitlement(client, EXPIRED_PAID_USER, { validUntil: new Date(Date.now() - 86400_000) });
-    //   const q2 = await quota.getQuota({ userId: EXPIRED_PAID_USER });
-    //   assert.strictEqual(q2.tier, 'free', '付费过期应降级为免费');
-    //   assert.strictEqual(q2.aiRoundsLimit, FREE_DAILY_LIMIT, '降级后额度回到免费每日上限');
-
-    console.log('ℹ️  运行期断言骨架已就位；当前以「PG 连通 + 接口存在」作为 I3 前置校验');
-  } catch (e) {
-    // 区分：合约不匹配（接口签名未知）→ SKIP；业务值错误 → FAIL
-    if (/Cannot read|is not a function|is not defined|Cannot find/.test(e.message)) {
-      console.warn(`⚠️  运行期断言需与 lib/quota.js 实际实现对齐（fail-open）：${e.message}`);
-    } else {
-      fail(`配额契约断言失败：${e.message}`);
-    }
+  // 404 / 501 → 端点未实现
+  if (probe.status === 404 || probe.status === 501) {
+    skip('NOT-IMPLEMENTED: /api/quota 返回 404/501，免费额度（I3）未落地，跳过');
   }
 
-  await client?.end().catch(() => {});
-  console.log('\n🎉 test-quota 脚手架通过（not-implemented → skip；I3 落地后自动启用断言）');
+  // 功能标志未开：响应中明确标记未启用 → skip
+  const body = probe.json || {};
+  const disabled = body.enabled === false || body.quotaEnabled === false || body.i3Enabled === false;
+  if (disabled) {
+    skip('功能标志未开（enabled/quotaEnabled/i3Enabled === false），免费额度（I3）未启用，跳过');
+  }
+
+  ok(`/api/quota 可达（status=${probe.status}），进入基础断言`);
+
+  // ── 基础断言：返回剩余次数与额度上限 ──
+  assert.ok(
+    typeof body.remaining === 'number' || typeof body.remainingQuota === 'number',
+    `应返回剩余次数(remaining/remainingQuota)，实际: ${JSON.stringify(body)}`,
+  );
+  ok('返回剩余额度字段');
+
+  assert.ok(
+    typeof body.limit === 'number' || typeof body.dailyLimit === 'number',
+    `应返回额度上限(limit/dailyLimit)，实际: ${JSON.stringify(body)}`,
+  );
+  ok('返回额度上限字段');
+
+  console.log('\n🎉 test-quota 基础断言通过（剩余次数 + 额度上限）');
   process.exit(0);
 }
 

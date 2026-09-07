@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /**
+ * I3 测试脚手架（功能未实现时 skip）
  * 辰箓 Chronik · I3 P0-7 兑换码验收脚手架（fail-open）
  *
  * 合约（依据 RELEASE-PLAN §I3 P0-7）：

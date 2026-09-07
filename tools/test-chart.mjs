@@ -3,7 +3,7 @@ import { buildChart, listAllCities, resolveLocation, toTrueSolarTime } from '../
 console.log('城市总数:', listAllCities().length);
 
 // 案例一：农历 + 天水（时柱应被校正为甲辰）
-const c1 = buildChart({
+const c1 = await buildChart({
   calendar: 'lunar',
   date: '1996-10-11',
   time: '09:30',
@@ -19,7 +19,7 @@ console.log('时柱是否改变:', c1.trueSolarTime.changedHourPillar);
 console.log('起运:', c1.natal.大运?.起运日期, '年龄', c1.natal.大运?.起运年龄);
 
 // 案例二：阳历 + 北京（东经 116.4，偏移很小，时柱不应改变）
-const c2 = buildChart({
+const c2 = await buildChart({
   calendar: 'solar',
   date: '1996-11-21',
   time: '09:30',
@@ -31,7 +31,7 @@ console.log('真太阳时:', c2.trueSolarTime.iso, '偏移(分):', c2.trueSolarT
 console.log('八字:', c2.pillars.join(' '), '| 时柱改变:', c2.trueSolarTime.changedHourPillar);
 
 // 案例三：海外（纽约，UTC-5）—— 验证通用时区处理
-const c3 = buildChart({
+const c3 = await buildChart({
   calendar: 'solar',
   date: '1996-11-21',
   time: '09:30',
@@ -45,7 +45,7 @@ console.log('真太阳时:', c3.trueSolarTime.iso, '偏移(分):', c3.trueSolarT
 console.log('八字:', c3.pillars.join(' '));
 
 // 案例四：手动经度
-const c4 = buildChart({ calendar: 'solar', date: '1996-11-21', time: '09:30', gender: 1, location: '105.72' });
+const c4 = await buildChart({ calendar: 'solar', date: '1996-11-21', time: '09:30', gender: 1, location: '105.72' });
 console.log('\n=== 案例四 手动经度 ===');
 console.log('解析:', resolveLocation('105.72'), '| 八字:', c4.pillars.join(' '));
 

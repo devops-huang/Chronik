@@ -2,19 +2,24 @@
 /**
  * 辰箓 Chronik · 发布门禁 `preflight`
  *
- * 串联 8 个现有验收脚本（smoke / test-auth / test-chart / test-report /
- * test-pipeline / test-content-policy / test-gdpr / qa-gates），任一「红」
- * （脚本正常运行后断言失败）即整体非零退出，禁止发版。
+ * 串联 8 个现有验收脚本，任一「红」（脚本正常运行后断言失败）即整体非零退出，
+ * 禁止发版。串联顺序（依据任务规范，固定不可调）：
+ *
+ *   smoke.mjs → verify-i0.mjs → qa-gates.mjs → test-content-policy.mjs →
+ *   test-gdpr.mjs → test-auth.mjs → test-chart.mjs → test-report.mjs
  *
  * fail-open 策略（依据工作区硬约束「所有检查 fail-open」）：
  *   - 脚本文件缺失            → SKIP（记录）
  *   - 脚本无法启动 / 超时     → SKIP（记录）
  *   - 脚本运行期崩溃（抛栈）  → SKIP（记录，需人工核查，不阻断发版）
- *   - 依赖环境的脚本（test-gdpr / qa-gates，需 PG + 运行中的服务）
+ *   - 依赖环境的脚本（qa-gates / test-gdpr，需 PG + 运行中的服务）
  *     因环境不可用而失败       → SKIP（记录）
  *   - 脚本正常运行、断言失败   → FAIL（红）→ 整体非零退出
  *
  * 设计原则：只为串联而建此编排器，绝不修改任何被串联脚本的逻辑。
+ * 特殊参数：smoke.mjs 依赖 .ts 类型擦除，需以
+ *   `node --experimental-strip-types tools/smoke.mjs` 运行（已内置）。
+ *
  * 运行：npm run preflight
  */
 
@@ -22,31 +27,30 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import assert from 'node:assert';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const NODE = process.execPath;
 
-// 8 个待串联脚本及其调用方式。
+// 8 个待串联脚本及其调用方式（顺序严格按任务规范）。
 //   args:         进程启动参数（smoke 依赖 .ts 类型擦除）
 //   envDependent: 依赖 PG + 运行中的服务；环境不可用时 fail-open SKIP
 const SCRIPTS = [
-  { name: 'smoke',               file: 'tools/smoke.mjs',              args: ['--experimental-strip-types'], envDependent: false },
-  { name: 'test-auth',           file: 'tools/test-auth.mjs',          args: [],                            envDependent: false },
-  { name: 'test-chart',          file: 'tools/test-chart.mjs',         args: [],                            envDependent: false },
-  { name: 'test-report',         file: 'tools/test-report.mjs',        args: [],                            envDependent: false },
-  { name: 'test-pipeline',       file: 'tools/test-pipeline.mjs',      args: [],                            envDependent: false },
-  { name: 'test-content-policy', file: 'tools/test-content-policy.mjs', args: [],                           envDependent: false },
-  { name: 'test-gdpr',           file: 'tools/test-gdpr.mjs',          args: [],                            envDependent: true  },
-  { name: 'qa-gates',            file: 'tools/qa-gates.mjs',           args: [],                            envDependent: true  },
+  { name: 'smoke',               file: 'tools/smoke.mjs',               args: ['--experimental-strip-types'], envDependent: false },
+  { name: 'verify-i0',           file: 'tools/verify-i0.mjs',           args: [],                            envDependent: false },
+  { name: 'qa-gates',            file: 'tools/qa-gates.mjs',            args: [],                            envDependent: true  },
+  { name: 'test-content-policy', file: 'tools/test-content-policy.mjs', args: [],                            envDependent: false },
+  { name: 'test-gdpr',           file: 'tools/test-gdpr.mjs',           args: [],                            envDependent: true  },
+  { name: 'test-auth',           file: 'tools/test-auth.mjs',           args: [],                            envDependent: false },
+  { name: 'test-chart',          file: 'tools/test-chart.mjs',          args: [],                            envDependent: false },
+  { name: 'test-report',         file: 'tools/test-report.mjs',         args: [],                            envDependent: false },
 ];
 
 // 环境不可用的典型标记：envDependent 脚本失败时据此判定为 SKIP 而非 FAIL。
 const ENV_ERROR_MARKERS = [
   'ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'ETIMEDOUT', 'getaddrinfo',
   'fetch failed', 'Unable to connect', 'timed out', 'connect',
-  '连接失败', '服务连通性: 失败', 'PG 连接失败', '无法加载 lib/content-policy',
+  '连接失败', '服务连通性: 失败', 'PG 连接失败', 'Connection terminated',
 ];
 
 // 运行期崩溃标记：脚本抛栈退出（与「正常运行后断言失败」区分）。

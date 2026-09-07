@@ -3,7 +3,7 @@ import { interpret } from '../lib/interpreter.js';
 import { buildReportHtml } from '../lib/report.js';
 import { writeFileSync } from 'node:fs';
 
-const chart = buildChart({
+const chart = await buildChart({
   calendar: 'lunar', date: '1996-10-11', time: '09:30',
   gender: 1, location: '天水',
 });
