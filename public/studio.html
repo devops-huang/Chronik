@@ -172,6 +172,14 @@
   .site-footer a:hover{ text-decoration:underline }
   .msg.l3{ background:rgba(190,160,90,.08); border:1px solid rgba(190,160,90,.25); color:#cdbb8e; font-size:12px; line-height:1.7; padding:10px 12px; border-radius:10px }
   .l3-tail{ font-size:11px; color:#8a7a5c; line-height:1.6; padding:6px 4px 2px; opacity:.85; font-style:italic }
+  /* P0-9 · 输出侧系统免责后缀：与 AI 正文视觉区分（分隔线 + 灰字 + 图标） */
+  .sys-note{ margin-top:9px; padding-top:8px; border-top:1px dashed var(--line); font-size:11.5px; line-height:1.65; color:#9a8c6e; opacity:.92; word-break:break-word }
+  .sys-note-l3{ color:#c9a36a; border-top-color:rgba(190,160,90,.45) }
+  /* P0-9 · 输出侧软改写免责块：分隔线 + 灰色小字 + 图标，视觉区分、不混入 AI 正文 */
+  .ai-disclaimer{ margin:8px 0 2px }
+  .ai-disclaimer-sep{ height:1px; background:linear-gradient(90deg,transparent,rgba(190,160,90,.35),transparent); margin:4px 0 6px }
+  .ai-disclaimer-text{ font-size:11.5px; color:#8a7a5c; line-height:1.6; padding:0 4px }
+  .ai-disclaimer.l3 .ai-disclaimer-text{ color:#c9a86a }
   .ai-gen-badge{ display:inline-block; font-size:10.5px; letter-spacing:.5px; color:var(--gold-bright); border:1px solid rgba(190,160,90,.4); border-radius:20px; padding:1px 9px; margin-bottom:6px }
   .ai-content{ font-size:14px; line-height:1.85; color:var(--ink); word-break:break-word }
   .fallback-card{ background:rgba(190,160,90,.06); border:1px solid rgba(190,160,90,.22); border-radius:12px; padding:12px 14px; margin-top:4px }

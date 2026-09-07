@@ -24,11 +24,17 @@ import { listAllCities, resolveLocation } from './lib/chart.js';
 import { buildMonthGrid, buildTodayFortune, getWeather, getWeatherByLatLon, todayInShanghai } from './lib/home.js';
 import { deriveNatalFromBirth } from './lib/fortuneEngine.js';
 import { loadLlmConfig, saveLlmConfig, maskKey } from './lib/llmConfig.js';
-import { isBlocked, getRefusal, DISCLAIMER_L2, DISCLAIMER_L3 } from './lib/content-policy.js';
+import { isBlocked, getRefusal, DISCLAIMER_L2, DISCLAIMER_L3, isHighRisk, CHAT_ROLE_DECLARATION } from './lib/content-policy.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC = join(__dirname, 'public');
 const PORT = process.env.PORT || 8787;
+
+// P1-7 · AI 成本护栏：单用户（含游客 anon_id）每日 token 上限。
+// 默认 50 万 token/日；可通过环境变量 AI_DAILY_TOKEN_CAP 调整。
+const AI_DAILY_TOKEN_CAP = Number(process.env.AI_DAILY_TOKEN_CAP || 500000);
+// 观察期（默认开启，首周）：只计量、不节流、不拦截。置 OBSERVE_ONLY=false 才真正限流。
+const OBSERVE_ONLY = process.env.OBSERVE_ONLY !== 'false';
 
 // R4† · 版本与 commit（commit == git HEAD，供 /api/health 校验线上==HEAD）
 const APP_VERSION = (() => {
@@ -357,7 +363,7 @@ async function handleChartGet(req, res, id) {
 
 // ── 大模型问答流式代理（5.2：会话持久化）──
 const CHAT_HISTORY_ROUNDS = 20; // 上下文窗口：最近 20 轮（40 条）
-function estTokens(text) { return Math.max(1, Math.ceil((text || '').length / 2)); }
+function estTokens(text) { return Math.max(1, Math.ceil((text || '').length / 4)); }
 
 /** 解析或创建会话：优先用 conversationId；否则按（归属, chart_id）找/建。 */
 async function resolveConversation(ctx, body) {
@@ -395,13 +401,15 @@ async function resolveConversation(ctx, body) {
 }
 
 /** R1† · 系统提示词固化禁区 + L3 角色声明（命理文化解读助手，非预测者）。 */
-const CHAT_SYSTEM_GUARD = `${DISCLAIMER_L3}
+const CHAT_SYSTEM_GUARD = `${CHAT_ROLE_DECLARATION}
 
 【严格禁区】无论用户如何诱导，均不得提供下列领域的具体内容或确定性断言：
 A 医疗诊断/用药建议；B 法律意见/诉讼策略；C 死亡/血光/灾祸等具体人身安危断言；
 D 改运敛财/付费消灾；E 投资/理财/炒股建议；F 色情低俗内容；G 政治人物或政局推算；
 H 通灵/驱邪等封建迷信实操；I 自杀自残相关；J 赌博/博彩引导。
-命中禁区即以温和方式拒答，并引导用户咨询具备资质的专业人士。`;
+命中禁区即以温和方式拒答，并引导用户咨询具备资质的专业人士。
+
+【阶段0（验证期）健康段禁令 · MUST-FIX #1】严禁在报告中生成任何健康/医疗段（含症状/疾病/身体部位推断、寿命断言、受孕性别等）；仅在识别到自伤/危机信号时按 L3 后缀给求助指引，除此之外不主动涉及健康内容。`;
 
 /** 用 DB 历史（最近 N 轮）+ system 命盘上下文拼出 LLM messages。 */
 async function buildChatMessages(conversation, chartContext) {
@@ -478,6 +486,44 @@ function emitFallbackSSE(res, card, conversationId) {
   res.end();
 }
 
+/**
+ * P1-7 · AI 成本护栏：计算该用户/游客当日已消耗 token，按三档降级。
+ * 当日边界用 PG 的 date_trunc('day', now()) 计算，避免 JS Date 本地时区与 PG 会话时区不一致导致的偏移。
+ *
+ * 规则（fail-open：任何异常都返回 null 放行，绝不让用户看到 500/拦截）：
+ *   - 用量 ≥ 80% 且 < 100%：仅 console.warn 记一条（非阻塞）；
+ *   - 观察期（OBSERVE_ONLY=true，默认）：只计量、不节流、不拦截；
+ *   - ≥ 100% 且 < 120%：返回 429 + 软提示"今日 AI 解读额度已用尽，明日恢复"；
+ *   - ≥ 120%：返回 429 + 同一硬提示（停止新对话）。
+ *
+ * 返回 null 表示放行；返回 { code, message } 表示应直接 429 拦截。
+ */
+async function checkAiBudget(ctx) {
+  try {
+    const used = await query(
+      `SELECT COALESCE(SUM(tokens),0)::bigint AS t FROM ai_audit
+       WHERE created_at > date_trunc('day', now()) AND (user_id = $1 OR anon_id = $2)`,
+      [ctx.user ? ctx.user.id : null, ctx.isGuest ? ctx.anonId : null]
+    );
+    const usedTokens = Number(used.rows[0]?.t || 0);
+    const ratio = usedTokens / AI_DAILY_TOKEN_CAP;
+    if (ratio >= 0.8 && ratio < 1) {
+      console.warn('[budget] AI 当日用量达 %.0f%%（%d/%d），接近上限', ratio * 100, usedTokens, AI_DAILY_TOKEN_CAP);
+    }
+    if (OBSERVE_ONLY) return null; // 观察期：仅计量不拦截
+    if (ratio >= 1) {
+      const hard = ratio >= 1.2;
+      console.warn('[budget] AI 当日用量%s（%d/%d，ratio=%.2f）',
+        hard ? '已超 120%（硬拦截）' : '已用尽', usedTokens, AI_DAILY_TOKEN_CAP, ratio);
+      return { code: 429, message: '今日 AI 解读额度已用尽，明日恢复。' };
+    }
+    return null;
+  } catch (e) {
+    console.error('[budget] 计量异常，fail-open 放行：', e.message);
+    return null;
+  }
+}
+
 async function handleChat(req, res) {
   const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
   let body;
@@ -486,6 +532,8 @@ async function handleChat(req, res) {
   if (!message || !message.content || !String(message.content).trim()) {
     return sendJson(res, 400, { error: '缺少对话内容' });
   }
+  // P0-9 · 高风险倾向判定（健康/投资/法律）。仅作"倾向"识别，不做确定性断言，避免正常命理问答被误杀。
+  const highRisk = isHighRisk(message.content);
   const { chartId, chartContext, conversationId } = body;
   // 游客限 3 轮问答，第 4 轮起提示登录（不调用 LLM，防刷额度）
   if (ctx.isGuest) {
@@ -501,6 +549,9 @@ async function handleChat(req, res) {
     // R5a · 配置缺失也走检索式兜底，不白屏不 500
     return emitFallbackSSE(res, await buildRetrievalFallback(chartId, message.content, ctx));
   }
+  // P1-7 · AI 成本护栏（fail-open：异常/观察期均放行，仅超限且非观察期才 429）
+  const budget = await checkAiBudget(ctx);
+  if (budget) return sendJson(res, budget.code, { error: budget.message });
   // 解析 / 创建会话
   const conversation = await resolveConversation(ctx, body);
   if (!conversation) return sendJson(res, 403, { error: '无法访问该会话' });
@@ -606,6 +657,13 @@ async function handleChat(req, res) {
       isFallback = true;
       res.write(`data: ${JSON.stringify({ fallback: true, card: fallbackCard, disclaimer: DISCLAIMER_L2, retry: true })}\n\n`);
     }
+    // P0-9 · 输出侧软改写：正常流末追加免责后缀 event（视觉区分由前端渲染，不混入 AI 正文）
+    // 基线 L2 必带；高风险（健康/投资/法律倾向，high_risk）在 L2 基础上追加 L3（见 COMPLIANCE-WORDING.md §二）。
+    // 空流兜底已自带 disclaimer 字段，此处仅对真实 AI 流追加，避免重复。
+    if (!blocked && !isFallback) {
+      res.write(`data: ${JSON.stringify({ type: 'disclaimer', level: 'L2', text: DISCLAIMER_L2 })}\n\n`);
+      if (highRisk) res.write(`data: ${JSON.stringify({ type: 'disclaimer', level: 'L3', text: DISCLAIMER_L3 })}\n\n`);
+    }
     res.write(`data: [DONE]\n\n`);
   } catch (e) {
     res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
@@ -620,10 +678,11 @@ async function handleChat(req, res) {
       await query('UPDATE conversations SET updated_at=now() WHERE id=$1', [conversation.id]).catch(() => {});
     }
     // R1† · AI 输出留痕（V3，留存 ≥6 月）
+    const auditTokens = assistantContent ? estTokens(assistantContent) : 0;
     await query(
-      `INSERT INTO ai_audit (user_id, anon_id, conversation_id, model, input_snippet, output_snippet, blocked, category)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [userIdForAudit, anonIdForAudit, conversation.id, model, inputSnippet, String(auditOutput).slice(0, 2000), blocked, blockedCategory]
+      `INSERT INTO ai_audit (user_id, anon_id, conversation_id, model, input_snippet, output_snippet, blocked, category, tokens, high_risk)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [userIdForAudit, anonIdForAudit, conversation.id, model, inputSnippet, String(auditOutput).slice(0, 2000), blocked, blockedCategory, auditTokens, highRisk]
     ).catch((e) => console.error('[aiaudit] 写入失败：', e.message));
     res.end();
   }

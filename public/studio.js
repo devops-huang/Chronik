@@ -31,6 +31,22 @@
       cb.scrollTop = cb.scrollHeight;
     });
   }
+  // P0-9 · 输出侧软改写：渲染服务端下发的 disclaimer event（视觉区分块，不混入 AI 正文）。
+  // 复用 l3-tail 的灰字调性，外层加分隔线与图标，强化"非正文"边界。
+  function renderStreamDisclaimer(level, text) {
+    if (!text) return;
+    state.gotStreamDisclaimer = true;
+    withEl('chatBody', (cb) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'ai-disclaimer' + (level === 'L3' ? ' l3' : '');
+      const sep = document.createElement('div'); sep.className = 'ai-disclaimer-sep';
+      const p = document.createElement('div'); p.className = 'ai-disclaimer-text';
+      p.textContent = (level === 'L3' ? '🛟 ' : 'ℹ️ ') + text;
+      wrap.appendChild(sep); wrap.appendChild(p);
+      cb.appendChild(wrap);
+      cb.scrollTop = cb.scrollHeight;
+    });
+  }
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const md = (text) => {
     try { return DOMPurify.sanitize(marked.parse(text || '')); }
@@ -262,6 +278,7 @@
     if (!state.chartContext) { withEl('status', (s) => { s.textContent = '⚠️ 请先推演命盘'; }); return; }
 
     if (!state.conversationId) ensureL3First(); // R1† · L3 会话首条
+    state.gotStreamDisclaimer = false; // P0-9 · 本次请求是否收到服务端 disclaimer event
     addMsg('user', text);
     textEl.value = '';
     // 5.2：只传最新一条 user 消息 + 会话/命盘上下文；历史由服务端从 DB 拼装
@@ -282,6 +299,7 @@
     let aiEl = null;
     let aiContent = null;
     let acc = '';
+    let sysNoteShown = false; // P0-9 · 标记服务端是否已下发系统免责后缀，避免重复追加通用尾注
     let firstByteSeen = false;
     const ctrl = new AbortController();
     // 首字节定时器：qwen3.7-plus 思考+缓存首字经常 15-30s，给到 40s 上限
@@ -351,9 +369,22 @@
           const p = t.slice(5).trim(); if (p === '[DONE]') continue;
           try {
             const j = JSON.parse(p);
+            // P0-9 · 输出侧软改写：流末 disclaimer event（L2 基线 / L3 高风险追加），视觉区分渲染
+            if (j.type === 'disclaimer') { renderStreamDisclaimer(j.level, j.text); continue; }
             if (j.text) {
               acc += j.text;
               if (aiContent) { aiContent.innerHTML = md(acc); withEl('chatBody', (cb) => { cb.scrollTop = cb.scrollHeight; }); }
+            }
+            if (j.systemNote) {
+              // P0-9 · 输出侧系统免责后缀：视觉区分（分隔线 + 灰字 + 图标），不与 AI 正文混淆
+              sysNoteShown = true;
+              if (!aiEl) { aiEl = addMsg('ai', ''); aiEl.innerHTML = '<div class="ai-gen-badge">🤖 AI 生成 · 仅供娱乐参考</div><div class="ai-content"></div>'; aiContent = aiEl.querySelector('.ai-content'); }
+              const note = document.createElement('div');
+              note.className = 'sys-note sys-note-' + (j.level === 'L3' ? 'l3' : 'l2');
+              note.textContent = '🔻 ' + j.systemNote;
+              if (aiContent) aiContent.appendChild(note); else aiEl.appendChild(note);
+              withEl('chatBody', (cb) => { cb.scrollTop = cb.scrollHeight; });
+              continue;
             }
             if (j.fallback) {
               // R5a · 检索式兜底卡片：渲染命盘相关内容 + L2 免责 + 重试按钮
@@ -396,7 +427,8 @@
       // 流正常结束
       if (aiContent) aiContent.innerHTML = md(acc);
       if (!aiEl) removeThinkingBubble();
-      if (acc) appendL3Tail(); // R1† · 流式尾注（固定，不可被模型覆盖）
+      // R1† · 流式尾注（固定，不可被模型覆盖）。若服务端已下发 disclaimer event（P0-9 软改写），则不重复追加硬编码尾注。
+      if (acc && !state.gotStreamDisclaimer) appendL3Tail();
       if (acc && !state.aiTracked) { state.aiTracked = true; trackEvent('ai_first_q', {}); } // R3 · 首问成功
       setLlmStatus(acc ? '已接收答复' : '');
     } catch (e) {

@@ -123,10 +123,16 @@ CREATE TABLE IF NOT EXISTS ai_audit (
   output_snippet TEXT,                -- AI 输出摘要（截断）
   blocked    BOOLEAN NOT NULL DEFAULT false,
   category   VARCHAR(8),              -- 命中 §6.1 类别 A–J（命中时）
+  tokens     INTEGER DEFAULT 0,       -- 估算 token 数（AI 成本护栏计量用，P1-7）
+  high_risk  BOOLEAN DEFAULT false,   -- 健康/投资/法律倾向（L3 软改写触发 + 人工复盘，P0-9）
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_aiaudit_created ON ai_audit(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_aiaudit_user ON ai_audit(user_id) WHERE user_id IS NOT NULL;
+
+-- I1 · 成本护栏 / 高风险标记（幂等，兼容已存在的表，避免重复建列报错）
+ALTER TABLE ai_audit ADD COLUMN IF NOT EXISTS tokens INTEGER DEFAULT 0;
+ALTER TABLE ai_audit ADD COLUMN IF NOT EXISTS high_risk BOOLEAN DEFAULT false;
 
 -- ── 用户举报 / 投诉入口（R1-5）──
 CREATE TABLE IF NOT EXISTS reports (
