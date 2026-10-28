@@ -1,151 +1,69 @@
-# 辰箓 · Chen Lu Destiny
+# 八字命盘系统 · Ba Zi Destiny
 
-面向 **To C 用户**的国风命理平台：八字排盘 + 命理答疑 + 个人命盘档案。用户输入阳历 / 农历的
-出生年月日时、出生地、性别，系统做**真太阳时校正**并排出完整命盘，生成黑金风格报告；登录后
-所有命盘推演数据存入 **PostgreSQL**，并在首页呈现万年历、今日运势、天气、阴阳建议等动态看板。
-
-## 页面
-
-- `/login.html` — 登录 / 注册（动态太极八卦背景）
-- `/index.html` — 天机阁首页（需登录）：旋转八卦太极动画、万年历、今日运势、天气（ECharts 24h 温度线）、阴阳建议、最近命盘
-- `/studio.html` — 排盘工作室（需登录）：左侧表单、中间大模型答疑（Markdown 渲染）、右侧命盘报告预览（可全屏 / 导出 / 打印）
+一个本地运行的八字排盘 + 命理答疑 Web 应用。用户输入**阳历 / 农历**的出生年月日时、出生地、性别，系统自动做**真太阳时校正**，排出完整命盘并生成一份黑金风格的 HTML 报告；报告之外，右侧留有**大模型答疑窗口**，可基于这份命盘继续追问。
 
 ## 功能
 
-- **双历法输入** + **真太阳时校正**（按出生地经度回拨，跨时辰提示时柱变化）
-- **完整命盘报告**：四柱、五行、格局用神、大运、流年、流月、分领域解读、三句话总结
-- **账号体系**：注册 / 登录，session 存库（httpOnly cookie），密码 scrypt 哈希
-- **数据持久化**：用户资料 + 每次排盘（输入 / 命盘 / 解盘 / 报告 HTML）存入 PostgreSQL
-- **首页动态看板**：万年历（农历 + 日干支）、今日运势（结合用户命盘五行）、Open-Meteo 天气（免 Key）、阴阳建议
-- **大模型答疑**：OpenAI 兼容接口，服务端预置阿里云百炼 `qwen3.7-plus`，流式输出，回答经 marked + DOMPurify 渲染为 Markdown
+- **双历法输入**：阳历或农历，自动换算。
+- **真太阳时校正**：按出生地经度回拨，跨时辰时明确提示时柱变化及其对全盘的影响。
+- **完整命盘报告**：四柱、五行分布、格局与用神（扶抑 + 调候）、大运时间轴、流年、近期流月、分领域（事业 / 财运 / 感情 / 健康 / 人际）解读、三句话总结。
+- **大模型答疑**：OpenAI 兼容接口（DeepSeek / OpenAI / 通义 / Kimi / 智谱 / 本地 Ollama），流式输出。模型只做答疑，不参与报告生成 — **没有 API Key 也能出完整报告**。
+- **导出 / 打印**：报告可一键导出独立 HTML 文件或直接打印。
 
-## 架构
-
-```
-public/          前端（login / index / studio + style.css）
-lib/db.js        pg 连接池 + 幂等建表（schema.sql）
-lib/auth.js      注册 / 登录 / 会话 / 资料
-lib/home.js      万年历 / 今日运势 / 天气 / 阴阳建议
-lib/chart.js     排盘（cantian-tymext 封装）
-lib/core.js      编排：排盘 → 查运 → 拆盘 → 解盘 → 报告
-lib/interpreter.js  命理规则引擎
-lib/report.js    黑金 HTML 报告
-server.js        HTTP 路由（零内置依赖 + pg）
-```
-
-## 环境要求
-
-- **Node.js ≥ 22.6**（需原生运行 `.ts` 模块；建议 22 LTS。`npm start` 已带 `--experimental-strip-types`）
-- **PostgreSQL ≥ 14**
-
-## 本地运行
+## 快速开始
 
 ```bash
-git clone <本仓库地址> && cd <仓库目录>
-npm install
-# 准备 PostgreSQL，建库建用户（详见下方部署）
-export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=chenlu PGPASSWORD=xxx PGDATABASE=chenlu
-export LLM_BASE_URL=... LLM_API_KEY=... LLM_MODEL=qwen3.7-plus
-npm start
-# 打开 http://127.0.0.1:8787
+cd bazi-system
+npm install          # 安装 cantian-tymext 引擎（已锁 0.0.26）
+npm start            # 启动服务，默认端口 8787
+# 浏览器打开 http://localhost:8787
 ```
 
-环境变量优先级：`/api/chart`、`/api/chat` 等由前端传入或回退到服务端 `LLM_*`；`LLM_*` 仅服务端使用，
-**密钥不进前端、不落盘到前端**。完整变量清单见 `.env.example`。
+自定义端口：`PORT=9000 npm start`。
 
-## 部署
+## 使用说明
 
-项目目录即服务目录（仓库根含 `server.js` / `lib/` / `public/`），前端为纯静态文件、无需构建。
+1. 左侧填写：历法（阳历 / 农历）、出生日期、出生时间、性别、出生地。
+2. 出生地填城市名即可（内置 361 城经度库）；也支持手动经纬度：
+   `城市名,经度,时区` 例如 `洛杉矶,-118.24,-8`。海外出生按标准经度 = UTC偏移×15° 处理。
+3. 点「排盘并生成报告」，黑金命盘在左侧呈现。
+4. 点「模型设置」填入 Base URL / API Key / 模型名（存浏览器 localStorage，服务端不落盘）。
+5. 右侧以命盘为上下文继续追问。
 
-### 1. 准备数据库（PostgreSQL）
+## 接口
 
-```bash
-createdb chenlu          # 或登录 psql 后执行 CREATE DATABASE chenlu;
-# 可选：创建专用账号并授权
-```
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/` | 单页前端 |
+| GET | `/api/cities` | 内置城市列表 |
+| POST | `/api/chart` | 排盘 + 解盘 + 报告 HTML。body：`{calendar,date,time,gender,location,enableTrueSolar,fortune?}` |
+| POST | `/api/chat` | 大模型流式代理（SSE）。body：`{baseUrl,apiKey,model,messages,chartContext}` |
 
-### 2. 配置环境变量
-
-```bash
-cp .env.example .env
-vim .env                 # 填入 PG* 与 LLM_*（LLM_API_KEY 为服务端密钥，切勿提交）
-```
-
-### 3. 安装依赖并启动
-
-```bash
-npm install
-npm start
-```
-
-> 数据库表在首次启动时由 `initSchema()` **自动创建**，无需手动建表。
-
-### 4.（可选）生产守护 systemd
-
-`/etc/systemd/system/chenlu.service`：
+## 项目结构
 
 ```
-[Unit]
-Description=ChenLu Bazi System
-After=network.target postgresql.service
-
-[Service]
-WorkingDirectory=/opt/chenlu
-ExecStart=/usr/bin/node --experimental-strip-types server.js
-EnvironmentFile=/opt/chenlu/.env
-Restart=always
-User=chenlu
-
-[Install]
-WantedBy=multi-user.target
+bazi-system/
+├─ server.js            # 零依赖 Node HTTP 服务 + 大模型代理
+├─ lib/
+│  ├─ chart.js          # 排盘服务层（真太阳时 / 城市库 / 农历互转）
+│  ├─ interpreter.js     # 命理规则引擎（五行/旺衰/格局/用神/岁运/分领域）
+│  ├─ report.js         # 黑金风格 HTML 报告生成
+│  ├─ core.js           # 编排：排盘→查运→解盘→报告 + 命理上下文文本
+│  ├─ constants.js      # 五行/十神/神煞/调候字典
+│  ├─ util.ts           # vendor 自技能脚本（真太阳时算法）
+│  ├─ fortune.ts        # vendor 自技能脚本（流年/流月查询，已修立春口径）
+│  └─ _raw_fortune.ts   # vendor 源（重新生成用）
+├─ public/              # 前端（index.html + app.js）
+├─ data/cities-extended.json  # 扩展城市经度库
+└─ tools/               # 开发/测试脚本（vendor.cjs, smoke/test-*.mjs）
 ```
 
-```bash
-systemctl daemon-reload
-systemctl enable --now chenlu
-```
+## 关键实现说明
 
-> ⚠️ 云主机安全组需放行 `TCP 8787`（如阿里云 ECS 控制台 → 安全组 → 入方向）。
+- **引擎来源**：四柱由 `cantian-tymext`（npm 公开包，已锁 0.0.26）计算；流年/流月查询与真太阳时换算是 vendor 自原技能脚本并**修复了一个流年标签 bug**（原脚本 `level=month` 时流年按 1/1 切换而非立春，已改为立春口径）。
+- **真太阳时**：`真太阳时 = 地方平时 + 真平太阳时差(EoT)`。地方平时由「标准经度 = UTC偏移×15°」与出生地经度之差换算。
+- **报告不可变**：同一命盘每次生成完全一致；大模型只在答疑窗口自由发挥。
 
-### 5. 生产 HTTPS 域名部署（chronik.cn 示例）
+## 免责声明
 
-本项目已提供 Nginx 反代 + Let's Encrypt 免费证书的一键方案（`infra/` 目录）。
-
-**① 域名解析（在域名注册商控制台，如百度智能云）**
-
-给 `chronik.cn` 添加两条 A 记录指向服务器公网 IP：
-
-| 主机记录 | 类型 | 记录值 | 说明 |
-|---|---|---|---|
-| `@` | A | `服务器公网IP` | 根域名 chronik.cn |
-| `www` | A | `服务器公网IP` | 子域名 www.chronik.cn |
-
-添加后等待 DNS 生效（TTL 通常 10 分钟内），用 `dig +short chronik.cn` 确认已返回服务器 IP。
-
-**② 放行端口（在云服务器安全组，如阿里云 ECS）**
-
-入方向需放行 `TCP 80`（证书校验）与 `TCP 443`（HTTPS）。`8787` 在套了 Nginx 后可不再对外暴露。
-
-**③ 服务器上执行一键脚本**
-
-```bash
-# 以 root 在仓库目录内执行
-bash infra/setup-https.sh
-```
-
-脚本会自动：安装 Nginx + certbot → 写入反代配置 → 申请证书 → 重载 Nginx → 验证。
-
-**④ 验证**
-
-```bash
-curl -sS -o /dev/null -w "%{http_code}\n" https://chronik.cn/login.html   # 期望 200
-curl -sS -I http://chronik.cn/login.html | grep -i location               # 应 301 到 https
-```
-
-证书由 certbot 的 systemd timer 自动续期，无需人工干预。
-
-> 备注：Nginx 配置见 `infra/nginx/chronik.conf`，已针对 SSE 流式 AI 对话关闭代理缓冲。
-
-## 说明
-
-命理仅供文化娱乐参考，不构成医疗 / 法律 / 财务 / 投资建议。
+本系统为传统命理体系（子平八字）的象征性推演与娱乐工具，**不构成医疗、法律、财务或投资建议**。命理是参考，不是定数；涉及健康、法律、重大财务决策请咨询相应专业人士。

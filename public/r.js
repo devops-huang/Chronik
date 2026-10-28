@@ -1,10 +1,22 @@
-/* 辰箓 · 召回落地页（F3，PRD 4.2）
- * 公开页，无需登录（沉默用户回流）。
- * 载入即 POST /api/track {action:'recall_open', payload:{ref}}（复用 I0 归因口径，/api/track 白名单已含 recall_open）。
- * 按钮点击 POST /api/track {action:'recall_click', payload:{ref}} → 跳 /studio.html。
+/* 辰箓 · 召回落地页 /r（F3，PRD 4.2 + 2026-09-08 决议 W1-④「破站内信死锁」）
+ * 公开页，无需登录（沉默用户回流）。A 案「用户自携链接」：站内信 link 一律为 /r?ref=type:period。
+ *
+ * 按 URL 的 ref 前缀分流（后端 lib/retention.js recallLink 已全部改为 /r?ref=）：
+ *   ref 以 'renewal:' 开头  → 主按钮去结缘堂续费 /pricing.html?ref=…#redeem；次按钮去推演阁看命盘
+ *   其余（solar_term: / liunian: / destiny_node: / birthday: / 无 ref / 其它自携值）
+ *                           → 保持原样：两按钮均去 /studio.html
+ *
+ * 埋点（沿用 I2 口径，/api/track 白名单已含）：
+ *   载入   recall_open  { ref }
+ *   点击   recall_click { ref, target }
+ *
+ * 合规红线：公开免登录、保留 L2 免责声明、禁用恐惧诉求（不得出现"太岁当头/灾厄将至"等恐吓文案拉开门率）。
  */
 (() => {
-  const track = (action, payload) => {
+  const DEFAULT_REF = 'direct'; // 无 ref / 解析失败时的归因值（与历史口径一致）
+
+  /** 业务埋点：单端点上报，静默失败，绝不阻断主流程。 */
+  function track(action, payload) {
     try {
       fetch('/api/track', {
         method: 'POST',
@@ -13,30 +25,89 @@
         keepalive: true,
       });
     } catch (e) { /* 埋点失败不阻断业务 */ }
-  };
+  }
 
+  /** 解析 ?ref=（URLSearchParams 已自动解码，如 solar_term%3A2026-bailu → solar_term:2026-bailu）。 */
   function getRef() {
     try {
-      return new URLSearchParams(location.search).get('ref') || 'direct';
-    } catch { return 'direct'; }
+      const v = new URLSearchParams(location.search).get('ref');
+      return (v || '').trim() || DEFAULT_REF;
+    } catch { return DEFAULT_REF; }
   }
 
   const ref = getRef();
+  // 仅 renewal: 前缀走续费分支；其余（含无 ref、人工自携 wx-manual）走常规分支。
+  const isRenewal = ref.indexOf('renewal:') === 0;
 
-  // 载入选 recall_open
-  track('recall_open', { ref, ua_fallback: true });
+  /**
+   * 目标 URL 带上 ref，便于落地页（推演阁 / 结缘堂）复用于「带走回访问入口」。
+   * 注意：query 必须插在 #hash 之前，否则 ?ref= 会被当成 fragment 的一部分而失效。
+   */
+  function withRef(path) {
+    if (ref === DEFAULT_REF) return path;
+    const hashIdx = path.indexOf('#');
+    const hash = hashIdx >= 0 ? path.slice(hashIdx) : '';
+    const base = hashIdx >= 0 ? path.slice(0, hashIdx) : path;
+    return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'ref=' + encodeURIComponent(ref) + hash;
+  }
 
-  function bind(id, extra) {
+  /** 分流文案表：key = 分流场景。文案一律中性，禁恐惧诉求。 */
+  const SCENES = {
+    renewal: {
+      sub: '许久未见，你的命理推演记录一直为你保留。<br>结缘堂权益可在此续费，续费后 AI 答疑与命盘云保存继续可用。',
+      summary: '你的命盘仍在 · 结缘堂续费入口已为你备好',
+      primary: { text: '去结缘堂续费 →', href: '/pricing.html#redeem', target: 'renewal' },
+      ghost: { text: '先看看我的流年 / 命宫变化', href: '/studio.html', target: 'flow' },
+    },
+    normal: {
+      sub: '许久未见，你的命理推演记录一直为你保留。<br>登录即可查看流年与命宫的最新变化。',
+      summary: '你的命盘仍在 —— 登录查看流年 / 命宫变化',
+      primary: { text: '查看我的流年 / 命宫变化', href: '/studio.html', target: 'flow' },
+      ghost: { text: '继续 AI 答疑', href: '/studio.html', target: 'ask' },
+    },
+  };
+
+  const scene = isRenewal ? SCENES.renewal : SCENES.normal;
+
+  function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+  function setHtml(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  function applyScene() {
+    setHtml('rSubText', scene.sub);
+    setText('rSummaryText', scene.summary);
+
+    const primary = document.getElementById('btnFlow');
+    if (primary) {
+      primary.textContent = scene.primary.text;
+      primary.setAttribute('href', withRef(scene.primary.href));
+    }
+    const ghost = document.getElementById('btnAsk');
+    if (ghost) {
+      ghost.textContent = scene.ghost.text;
+      ghost.setAttribute('href', withRef(scene.ghost.href));
+    }
+  }
+
+  /** 按钮点击：埋点后由 <a href> 自然跳转（keepalive 保证埋点发出）。 */
+  function bind(id, target) {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('click', () => {
-      track('recall_click', Object.assign({ ref }, extra || {}));
-      // 链接本身会跳转 /studio.html，此处仅补埋点（keepalive 保证发送）
+      track('recall_click', { ref, target });
     });
   }
 
-  bind('btnFlow', { target: 'flow' });
-  bind('btnAsk', { target: 'ask' });
+  applyScene();
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => {});
+  // 载入即上报 recall_open
+  track('recall_open', { ref, ua_fallback: true });
+
+  bind('btnFlow', scene.primary.target);
+  bind('btnAsk', scene.ghost.target);
 })();

@@ -21,10 +21,13 @@
   .geo-hint.warn{color:var(--red)}
   .geo-hint.loading{color:var(--ink-dim)}
 
-  .report-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .report-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
   .report-bar .t{font-size:14px;color:var(--gold-bright);letter-spacing:1px}
   .report-bar .sp{flex:1}
   .report-bar button{padding:6px 12px;font-size:12.5px}
+  /* W1-④ · 带走回访问入口：黑金主色，与「全屏/导出/打印」区分优先级 */
+  .report-bar button.take-link{background:linear-gradient(135deg,var(--gold),#caa765);color:#1a140a;border:none;font-weight:700}
+  .report-bar button.take-link:hover{filter:brightness(1.08);border:none}
   iframe.report{width:100%;flex:1;border:none;background:#0e0b08}
   .report-ph{color:var(--ink-dim);text-align:center;padding:60px 16px;font-size:13px;line-height:2;flex:1;display:flex;flex-direction:column;justify-content:center}
   .report-ph .big{font-size:40px;color:var(--line);font-family:var(--font-cn);display:block;margin-bottom:10px}
@@ -294,6 +297,8 @@
       <button id="btnFull">⛶ 全屏</button>
       <button id="btnExport">导出</button>
       <button id="btnPrint">打印</button>
+      <!-- W1-④ · 破站内信死锁：用户自携链接（复制 /r?ref=… 回访入口） -->
+      <button id="btnTakeLink" class="take-link" type="button" title="复制一个回访链接，粘贴到微信收藏 / 备忘录，下次点开直接回到这里">带走回访问入口</button>
     </div>
     <div class="report-ph" id="reportPlaceholder">
       <span class="big">命</span>填写左侧信息，推演命盘<br>黑金命盘将在此预览
@@ -335,7 +340,7 @@
 </main>
 
 <footer class="site-footer">
-  <span id="icp-no">域名备案中 · 暂以 IP 访问</span>
+  <span id="icp-no"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">粤ICP备2026138936号-1</a></span>
   <span class="footer-sep">·</span>
   <a href="/privacy.html">隐私政策</a>
   <span class="footer-sep">·</span>

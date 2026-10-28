@@ -47,6 +47,7 @@
       cb.scrollTop = cb.scrollHeight;
     });
   }
+  let toastTimer = null; // W1-④ · 带走链接提示的自动隐藏定时器
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const md = (text) => {
     try { return DOMPurify.sanitize(marked.parse(text || '')); }
@@ -144,7 +145,7 @@
       fetch('/api/config').then((r) => r.ok ? r.json() : null).then((d) => {
         if (!d) return;
         state.adminConfigured = !!d.llmPreset; // R10a：字段改名，模型就绪判定不变
-        const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '域名备案中 · 暂以 IP 访问';
+        const icp = document.getElementById('icp-no'); if (icp) icp.innerHTML = '<a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">' + (d.icpNo || '粤ICP备2026138936号-1') + '</a>';
         refreshLlm();
       }).catch(() => {});
 
@@ -203,6 +204,9 @@
           b.textContent = on ? '✕ 退出全屏' : '⛶ 全屏';
         });
       }; });
+
+      // W1-④ · 破站内信死锁：结果页「带走回访问入口」→ 复制 /r?ref=… 让用户自携
+      withEl('btnTakeLink', (b) => { b.onclick = () => { takeRecallLink(b); }; });
 
       // 聊天 send（Markdown）
       withEl('btnSend', (b) => { b.onclick = send; });
@@ -282,6 +286,141 @@
   function renderReport(html) {
     withEl('reportFrame', (f) => { f.style.display = 'block'; f.srcdoc = html; });
     withEl('reportPlaceholder', (e) => { e.style.display = 'none'; });
+  }
+
+  /* ── W1-④ · 带走回访问入口（A 案「用户自携链接」）───────────────────────────
+   * 站内信只在用户回访后可见 → 留存提醒送不出去。解法：让用户自己把 /r?ref=… 带走，
+   * 之后凭链接回来。此处负责「取 ref → 拼链接 → 复制到剪贴板（含降级）→ 反馈」。
+   */
+  const FALLBACK_REF = 'manual'; // 兜底 ref：既无 URL ?ref= 也无站内信时的通用回访入口
+
+  /** 取当前场景的 ref：① URL ?ref=（从 /r 过来时带上）② 最近一条站内信的 ref ③ manual。 */
+  async function resolveRecallRef() {
+    try {
+      const fromUrl = new URLSearchParams(location.search).get('ref');
+      if (fromUrl && fromUrl.trim()) return fromUrl.trim();
+    } catch { /* URL 解析失败 → 继续降级 */ }
+    try {
+      const r = await fetch('/api/notifications'); // 未登录 401 → 直接落兜底
+      if (r.ok) {
+        const d = await r.json().catch(() => null);
+        const list = (d && Array.isArray(d.notifications)) ? d.notifications : [];
+        for (let i = 0; i < list.length; i += 1) {
+          const n = list[i] || {};
+          const p = (n.payload && typeof n.payload === 'object') ? n.payload : {};
+          const cand = p.ref || n.ref_period || p.ref_period || '';
+          if (cand && String(cand).trim()) return String(cand).trim();
+        }
+      }
+    } catch { /* 拉取失败 → 落兜底 */ }
+    return FALLBACK_REF;
+  }
+
+  /** 拼回访链接：https://<当前域名>/r?ref=<urlencoded ref>。 */
+  function buildRecallLink(ref) {
+    const origin = (location && location.origin) ? location.origin : '';
+    return origin + '/r?ref=' + encodeURIComponent(ref);
+  }
+
+  /**
+   * 降级复制：textarea + document.execCommand('copy')。
+   * 生产当前为 IP + HTTP（非 secure context），navigator.clipboard 会直接失败，
+   * 故此路径是 HTTP 下的主力实现，不是可选项。
+   * @returns {boolean} 是否复制成功
+   */
+  function legacyCopy(text) {
+    let ok = false;
+    let ta = null;
+    try {
+      ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', 'readonly');
+      ta.style.position = 'fixed';
+      ta.style.top = '0px';
+      ta.style.left = '0px';
+      ta.style.width = '1px';
+      ta.style.height = '1px';
+      ta.style.padding = '0px';
+      ta.style.border = 'none';
+      ta.style.opacity = '0';
+      ta.style.zIndex = '-1';
+      document.body.appendChild(ta);
+      const sel = document.getSelection ? document.getSelection() : null;
+      const prevRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0) : null;
+      ta.focus();
+      ta.select();
+      if (ta.setSelectionRange) ta.setSelectionRange(0, ta.value.length); // iOS 需显式设选区
+      ok = !!(document.execCommand && document.execCommand('copy'));
+      if (prevRange && sel) { try { sel.removeAllRanges(); sel.addRange(prevRange); } catch { /* 恢复选区失败可忽略 */ } }
+    } catch { ok = false; }
+    if (ta && ta.parentNode) { try { ta.parentNode.removeChild(ta); } catch { /* 已移除 */ } }
+    return ok;
+  }
+
+  /**
+   * 复制文本：① Clipboard API（HTTPS 生效后自动走这条）② execCommand 降级 ③ 手动复制弹窗。
+   * @returns {Promise<'ok'|'manual'|'fail'>}
+   */
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+        return 'ok';
+      }
+    } catch { /* 非 secure context 或权限被拒 → 降级 */ }
+    if (legacyCopy(text)) return 'ok';
+    try {
+      if (window.prompt) {
+        window.prompt('复制这条回访链接，粘贴到微信收藏或备忘录：', text);
+        return 'manual';
+      }
+    } catch { /* prompt 被禁用 → 落 fail */ }
+    return 'fail';
+  }
+
+  /** 黑金风轻提示（复用 style.css 的 CSS 变量，无新依赖）。 */
+  function toast(msg) {
+    let el = $('takeLinkToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'takeLinkToast';
+      el.setAttribute('role', 'status');
+      el.style.cssText = 'position:fixed;left:50%;bottom:38px;transform:translateX(-50%);z-index:200;'
+        + 'max-width:86vw;padding:11px 18px;border-radius:12px;font-size:13.5px;line-height:1.6;'
+        + 'background:linear-gradient(180deg,var(--panel),var(--panel2));color:var(--gold-bright);'
+        + 'border:1px solid var(--gold);box-shadow:var(--shadow);opacity:0;transition:opacity .2s;'
+        + 'font-family:var(--font-serif);pointer-events:none';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 2800);
+  }
+
+  /** 「带走回访问入口」主流程。 */
+  async function takeRecallLink(btn) {
+    let ref = FALLBACK_REF;
+    let link = '';
+    let result = 'fail';
+    try {
+      ref = await resolveRecallRef();
+      link = buildRecallLink(ref);
+      result = await copyText(link);
+    } catch (e) {
+      console.warn('[takeLink]', e);
+      if (!link) link = buildRecallLink(ref);
+    }
+    if (result === 'ok') toast('✅ 已复制回访链接 —— 粘到微信收藏 / 备忘录，下次点开直接回来');
+    else if (result === 'manual') toast('请在弹窗中复制回访链接，保存到微信收藏 / 备忘录');
+    else toast('⚠️ 复制失败，请手动复制这条回访链接：' + link);
+    // 复用白名单内已有的 share_generated（新增 action 需改后端白名单，本批不碰后端）
+    trackEvent('share_generated', { kind: 'recall_link', source: 'studio_report', ref, result });
+    if (btn) {
+      const old = btn.textContent;
+      btn.textContent = result === 'ok' ? '✅ 已带走' : '📋 请手动复制';
+      setTimeout(() => { btn.textContent = old; }, 1800);
+    }
   }
 
   function addMsg(role, text, asHtml) {

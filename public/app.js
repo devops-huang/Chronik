@@ -42,7 +42,7 @@
   fetch('/api/config').then((r) => r.json()).then((d) => {
     state.llmPreset = !!d.llmPreset;
     refreshLlmStatus();
-    const icp = document.getElementById('icp-no'); if (icp) icp.textContent = d.icpNo || '域名备案中 · 暂以 IP 访问';
+    const icp = document.getElementById('icp-no'); if (icp) icp.innerHTML = '<a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">' + (d.icpNo || '粤ICP备2026138936号-1') + '</a>';
   }).catch(() => {});
 
   // ── 设置抽屉 ──

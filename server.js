@@ -132,6 +132,12 @@ function readBody(req, limit = 2 * 1024 * 1024) {
 async function serveStatic(req, res) {
   let rel = decodeURIComponent(req.url.split('?')[0]);
   if (rel === '/' || rel === '') rel = '/index.html';
+  // W1 · 召回落地页 /r（破「站内信死锁」验收项）：
+  // lib/retention.js 的 7 处通知 link 已统一为 /r?ref=type:period，而磁盘上只有 public/r.html，
+  // 没有名为 r 的文件，故把 /r 与 /r/ 规范化到 /r.html。
+  // 刻意不做 302 重定向：地址栏保留 ?ref= 原样，供 public/r.js 由 location.search 解析归因值；
+  // 同时少一次往返，也彻底排除重定向丢参风险（查询串本就不参与此处路径解析）。
+  if (rel === '/r' || rel === '/r/') rel = '/r.html';
   const safe = normalize(rel).replace(/^(\.\.[/\\])+/, '');
   const file = join(PUBLIC, safe);
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end('forbidden'); }
@@ -1264,7 +1270,7 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, {
         llmPreset: !!(process.env.LLM_BASE_URL && process.env.LLM_API_KEY && process.env.LLM_MODEL),
         appName: '辰箓',
-        icpNo: process.env.ICP_NO || '域名备案中 · 暂以 IP 访问',
+        icpNo: process.env.ICP_NO || '粤ICP备2026138936号-1',
         // I3 · 付费墙口径（供前端展示 + test-paywall 探测）
         aiFreeRounds: FREE_DAILY_ROUNDS,
         paidDailyRounds: PAID_DAILY_ROUNDS,
