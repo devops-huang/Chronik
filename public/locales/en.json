@@ -2,7 +2,8 @@
   "meta": {
     "title": "Chen Lu · Sign In · Hall of Heavenly Secrets",
     "homeTitle": "Chen Lu · Hall of Heavenly Secrets",
-    "studioTitle": "Chen Lu · Studio"
+    "studioTitle": "Chen Lu · Studio",
+    "nianliTitle": "Chen Lu · Almanac"
   },
   "common": {
     "brandName": "辰箓",
@@ -60,7 +61,8 @@
     "studio": "Studio",
     "pricing": "Membership",
     "login": "Sign in / Join",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "nianli": "Almanac"
   },
   "home": {
     "loading": "Reading the heavens…",
@@ -270,5 +272,19 @@
     "empty": "No messages yet.<br>Rhythm reminders — solar terms, annual pillars, your zodiac year and Tai Sui clashes — will appear here.",
     "loadFailed": "Could not load. Please try again shortly.",
     "aria": "Notifications"
+  },
+  "nianli": {
+    "h1": "Annual & Monthly Fortune",
+    "sub": "How each month of the current annual pillar rises and falls for your chart · cultural entertainment only",
+    "empty": "No chart yet — the yearly almanac needs one.",
+    "emptyCta": "Go to the Studio to cast a chart",
+    "blocked": "(Hidden by the content safety policy)",
+    "yearLabel": "{ganzhi} year",
+    "metaAnnual": "Annual pillar",
+    "metaLuck": "Luck pillar",
+    "metaKongwang": "Kong Wang",
+    "shen": "Symbolic stars",
+    "points": "Key points",
+    "l1": "Chen Lu is a research and presentation tool for traditional Chinese destiny culture. All content is generated automatically by AI from publicly documented destiny theories; it is provided for cultural study and entertainment only, does not constitute professional advice of any kind, and carries no liability for decisions made on its basis."
   }
 }

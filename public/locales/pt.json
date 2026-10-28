@@ -2,7 +2,8 @@
   "meta": {
     "title": "Chen Lu · Entrar · Salão dos Segredos Celestiais",
     "homeTitle": "Salão dos Segredos Celestiais",
-    "studioTitle": "Chen Lu · Estúdio"
+    "studioTitle": "Chen Lu · Estúdio",
+    "nianliTitle": "Chen Lu · Calendário"
   },
   "common": {
     "brandName": "辰箓",
@@ -60,7 +61,8 @@
     "studio": "Estúdio",
     "pricing": "Assinatura",
     "login": "Entrar / Cadastrar",
-    "logout": "Sair"
+    "logout": "Sair",
+    "nianli": "Calendário"
   },
   "home": {
     "loading": "Consultando os céus…",
@@ -270,5 +272,19 @@
     "empty": "Nenhuma mensagem ainda.<br>Lembretes de ritmo — termos solares, pilares anuais, seu ano do animal e choques com Tai Sui — aparecerão aqui.",
     "loadFailed": "Falha ao carregar. Tente novamente em instantes.",
     "aria": "Notificações"
+  },
+  "nianli": {
+    "h1": "Fortuna anual e mensal",
+    "sub": "Como cada mês do pilar anual atual sobe e desce no seu mapa · apenas entretenimento cultural",
+    "empty": "Nenhum mapa ainda — o calendário anual precisa de um.",
+    "emptyCta": "Vá ao Estúdio para montar um mapa",
+    "blocked": "(Oculto pela política de segurança de conteúdo)",
+    "yearLabel": "{ganzhi} — ano",
+    "metaAnnual": "Pilar anual",
+    "metaLuck": "Pilar de sorte",
+    "metaKongwang": "Kong Wang",
+    "shen": "Estrelas simbólicas",
+    "points": "Pontos-chave",
+    "l1": "A Chen Lu é uma ferramenta de estudo e apresentação da cultura tradicional chinesa do destino. Todo o conteúdo é gerado automaticamente por IA a partir de doutrinas públicas do destino; destina-se apenas a estudo cultural e entretenimento, não constitui aconselhamento profissional de qualquer natureza e não implica responsabilidade por decisões tomadas com base nele."
   }
 }

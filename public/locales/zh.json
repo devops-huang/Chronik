@@ -2,7 +2,8 @@
   "meta": {
     "title": "辰箓 · 登录 · Hall of Heavenly Secrets",
     "homeTitle": "辰箓 · 天机阁",
-    "studioTitle": "辰箓 · 推演阁"
+    "studioTitle": "辰箓 · 推演阁",
+    "nianliTitle": "辰箓 · 年历（流年流月）"
   },
   "common": {
     "brandName": "辰箓",
@@ -60,7 +61,8 @@
     "studio": "推演阁",
     "pricing": "结缘堂",
     "login": "登录 / 注册",
-    "logout": "退出"
+    "logout": "退出",
+    "nianli": "年历"
   },
   "home": {
     "loading": "正在推演天机…",
@@ -270,5 +272,19 @@
     "empty": "暂无通知。<br>节气流转、流年命宫、本命年冲太岁等节律提醒会在此出现。",
     "loadFailed": "加载失败，请稍后重试。",
     "aria": "通知"
+  },
+  "nianli": {
+    "h1": "流年 · 流月运势",
+    "sub": "当前命盘在本流年各月的吉凶起伏 · 仅作文化娱乐参考",
+    "empty": "还没有命盘记录，无法生成年历运势。",
+    "emptyCta": "前往推演阁生成命盘",
+    "blocked": "（内容已按内容安全策略屏蔽）",
+    "yearLabel": "{ganzhi} 年",
+    "metaAnnual": "流年",
+    "metaLuck": "大运",
+    "metaKongwang": "空亡",
+    "shen": "神煞",
+    "points": "要点",
+    "l1": "辰箓是传统命理文化的研究与展示工具。所有内容均由 AI 基于公开命理学说自动生成，仅供文化研究与娱乐参考，不构成任何专业建议，亦不对据此作出的任何决策负责。"
   }
 }
