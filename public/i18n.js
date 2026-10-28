@@ -84,11 +84,13 @@
       const v = get(dict, el.getAttribute('data-i18n-aria'));
       if (v != null) el.setAttribute('aria-label', v);
     });
-    const tEl = document.querySelector('title');
-    if (tEl && tEl.getAttribute('data-i18n-title')) {
-      const v = get(dict, tEl.getAttribute('data-i18n-title'));
-      if (v != null) document.title = v;
-    }
+    document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+      const v = get(dict, el.getAttribute('data-i18n-title'));
+      if (v == null) return;
+      // <title> 元素改文档标题；其余元素改原生 title 属性（如 iframe 的 title 供无障碍读取）
+      if (el.tagName === 'TITLE') document.title = v;
+      else el.setAttribute('title', v);
+    });
     html.setAttribute('lang', htmlLang(lang));
     document.querySelectorAll('[data-lang-btn]').forEach(function (b) {
       b.classList.toggle('on', b.getAttribute('data-lang-btn') === lang);

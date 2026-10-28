@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>辰箓 · 推演阁</title>
+<title data-i18n-title="meta.studioTitle">辰箓 · 推演阁</title>
+<style>html[data-i18n-pending] body{visibility:hidden}</style>
+<script src="/i18n.js"></script>
 <link rel="stylesheet" href="/style.css">
 <script src="/vendor/marked.min.js"></script>
 <script src="/vendor/purify.min.js"></script>
@@ -104,7 +106,19 @@
     border:2px solid rgba(26,20,10,.55);border-top-color:#1a140a;
     animation:spin .8s linear infinite;vertical-align:-2px;margin-right:4px}
   #btnSend.loading .spin{display:inline-block}
-  #btnSend.loading .lbl::after{content:'推演中'}
+
+  /* 语言切换器（与首页一致） */
+  .lang-switch{ display:flex; gap:3px; padding:3px; border:1px solid var(--line);
+    border-radius:9px; background:rgba(255,255,255,.025) }
+  .lang-switch button{ padding:5px 9px; min-height:34px; font-size:11.5px; letter-spacing:.5px;
+    background:transparent; border:none; border-radius:6px; color:var(--ink-dim);
+    cursor:pointer; font-family:var(--font-en); transition:.15s }
+  .lang-switch button.on{ background:var(--gold); color:#1a140a; font-weight:700 }
+  .lang-switch button:hover{ color:var(--gold-bright) }
+  .lang-switch button.on:hover{ color:#1a140a }
+  @media(max-width:760px){
+    .lang-switch button{ min-height:40px; padding:5px 8px; font-size:11px }
+  }
 
   @media(max-width:1100px){
     .studio{grid-template-columns:300px 1fr}
@@ -205,71 +219,76 @@
     <div><div class="cn">辰箓</div><div class="en">Chen Lu · Destiny</div></div>
   </div>
   <div class="nav-links">
-    <a href="/index.html">天机阁</a>
-    <a href="/studio.html" class="on">推演阁</a>
-    <a href="/pricing.html">结缘堂</a>
+    <a href="/index.html" data-i18n="nav.home">天机阁</a>
+    <a href="/studio.html" class="on" data-i18n="nav.studio">推演阁</a>
+    <a href="/pricing.html" data-i18n="nav.pricing">结缘堂</a>
   </div>
   <div class="user-menu">
+    <div class="lang-switch" role="group" aria-label="Language / Idioma / 语言">
+      <button type="button" data-lang-btn="en">EN</button>
+      <button type="button" data-lang-btn="pt">PT</button>
+      <button type="button" data-lang-btn="zh">中文</button>
+    </div>
     <span id="bellMount" class="bell-mount"></span>
     <div class="avatar" id="avatar">辰</div>
     <span id="uname" style="color:var(--ink-dim);font-size:13px;display:none"></span>
-    <span id="vipBadge" style="display:none;font-size:12px;color:#1a140a;background:linear-gradient(180deg,#e8c878,#c9a85a);padding:2px 9px;border-radius:20px;font-weight:700">👑 结缘堂</span>
+    <span id="vipBadge" data-i18n="studio.vipBadge" style="display:none;font-size:12px;color:#1a140a;background:linear-gradient(180deg,#e8c878,#c9a85a);padding:2px 9px;border-radius:20px;font-weight:700">👑 结缘堂</span>
     <span id="quotaBadge" style="display:none;font-size:12px;color:#9a8f78"></span>
-    <button id="btnLogin" style="padding:8px 16px;min-height:44px">登录 / 注册</button>
-    <button id="btnLogout" style="padding:6px 12px;display:none">退出</button>
+    <button id="btnLogin" data-i18n="nav.login" style="padding:8px 16px;min-height:44px">登录 / 注册</button>
+    <button id="btnLogout" data-i18n="nav.logout" style="padding:6px 12px;display:none">退出</button>
   </div>
 </nav>
 
 <main class="studio">
   <!-- 移动端标签栏（≤760 显示） -->
   <div class="m-tabs" id="mTabs">
-    <button data-tab="form" class="on">推演</button>
-    <button data-tab="report">报告</button>
-    <button data-tab="chat">问答</button>
+    <button data-tab="form" class="on" data-i18n="studio.tabForm">推演</button>
+    <button data-tab="report" data-i18n="studio.tabReport">报告</button>
+    <button data-tab="chat" data-i18n="studio.tabChat">问答</button>
   </div>
   <!-- 左：表单 + 历史 -->
   <div class="col col-form active" data-pane="form">
-    <h2 class="form-h">排出你的命盘</h2>
+    <h2 class="form-h" data-i18n="studio.formTitle">排出你的命盘</h2>
     <div class="field">
-      <label>历法</label>
+      <label data-i18n="studio.calendar">历法</label>
       <div class="seg" id="calSeg">
-        <button data-cal="solar">阳历</button>
-        <button data-cal="lunar" class="on">农历</button>
+        <button data-cal="solar" data-i18n="studio.solar">阳历</button>
+        <button data-cal="lunar" class="on" data-i18n="studio.lunar">农历</button>
       </div>
     </div>
     <div class="row2">
-      <div class="field"><label>出生日期</label>
-        <input id="date" type="text" placeholder="如 1996-10-11"></div>
-      <div class="field"><label>出生时间</label>
-        <input id="time" type="text" placeholder="如 09:30">
-        <div class="hint">不知可留空</div></div>
+      <div class="field"><label data-i18n="studio.birthDate">出生日期</label>
+        <input id="date" type="text" data-i18n-placeholder="studio.birthDatePh" placeholder="如 1996-10-11"></div>
+      <div class="field"><label data-i18n="studio.birthTime">出生时间</label>
+        <input id="time" type="text" data-i18n-placeholder="studio.birthTimePh" placeholder="如 09:30">
+        <div class="hint" data-i18n="studio.birthTimeHint">不知可留空</div></div>
     </div>
-    <div class="field"><label>性别</label>
+    <div class="field"><label data-i18n="studio.gender">性别</label>
       <div class="seg" id="genderSeg">
-        <button data-g="1">男</button>
-        <button data-g="2">女</button>
+        <button data-g="1" data-i18n="studio.male">男</button>
+        <button data-g="2" data-i18n="studio.female">女</button>
       </div>
     </div>
-    <div class="field"><label>出生地</label>
-      <input id="location" list="cityList" placeholder="城市名，如 济源市">
+    <div class="field"><label data-i18n="studio.place">出生地</label>
+      <input id="location" list="cityList" data-i18n-placeholder="studio.placePh" placeholder="城市名，如 济源市">
       <datalist id="cityList"></datalist>
       <div class="geo-hint" id="geoHint"></div>
-      <div class="hint">自动真太阳时校正；支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
+      <div class="hint" data-i18n-html="studio.placeHint">自动真太阳时校正；支持全国城市（自动联网识别）；也可直接填经度，如 <code>112.58</code></div>
     </div>
-    <div class="field"><label>运势区间</label>
+    <div class="field"><label data-i18n="studio.range">运势区间</label>
       <div class="row2">
-        <input id="startY" type="text" placeholder="起始年 2025">
-        <input id="endY" type="text" placeholder="结束年 2028">
+        <input id="startY" type="text" data-i18n-placeholder="studio.rangeStartPh" placeholder="起始年 2025">
+        <input id="endY" type="text" data-i18n-placeholder="studio.rangeEndPh" placeholder="结束年 2028">
       </div>
-      <div class="hint">留空 = 近三年</div>
+      <div class="hint" data-i18n="studio.rangeHint">留空 = 近三年</div>
     </div>
-    <button class="primary" id="btnSubmit" style="width:100%;padding:11px;font-size:15px">推演命盘 · 生成报告</button>
+    <button class="primary" id="btnSubmit" data-i18n="studio.submit" style="width:100%;padding:11px;font-size:15px">推演命盘 · 生成报告</button>
     <div class="hint" id="status" style="margin-top:10px"></div>
-    <button id="btnSaveAccount" class="primary" style="display:none;margin-top:12px;width:100%;padding:11px;font-size:14px">🔐 保存此命盘到我的账号</button>
+    <button id="btnSaveAccount" class="primary" data-i18n="studio.saveToAccount" style="display:none;margin-top:12px;width:100%;padding:11px;font-size:14px">🔐 保存此命盘到我的账号</button>
 
     <div class="recent-list">
-      <div class="hint">我的命盘历史</div>
-      <div id="recentBox"><div class="hint">暂无记录</div></div>
+      <div class="hint" data-i18n="studio.history">我的命盘历史</div>
+      <div id="recentBox"><div class="hint" data-i18n="studio.emptyRecent">暂无记录</div></div>
     </div>
   </div>
 
@@ -277,33 +296,34 @@
   <div class="col col-chat" data-pane="chat">
     <div class="chat-head">
       <span class="dot off" id="llmDot"></span>
-      <span class="t">命理答疑</span>
-      <span style="margin-left:auto;font-size:11px;color:var(--ink-dim)" id="llmStatus">检测中…</span>
+      <span class="t" data-i18n="studio.chatTitle">命理答疑</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--ink-dim)" id="llmStatus">
+        <span data-i18n="studio.detecting">检测中…</span></span>
     </div>
     <div class="chat-body" id="chatBody">
-      <div class="chat-empty" id="chatEmpty">先在左侧推演命盘，再在这里追问：<br>「今年事业怎么走？」「和 XX 合不合？」「财运何时好转？」</div>
+      <div class="chat-empty" id="chatEmpty" data-i18n-html="studio.chatEmpty">先在左侧推演命盘，再在这里追问：<br>「今年事业怎么走？」「和 XX 合不合？」「财运何时好转？」</div>
     </div>
     <div class="chat-input">
-      <textarea id="chatText" placeholder="先推演命盘，再在此提问…"></textarea>
-      <button class="primary" id="btnSend" disabled><span class="spin"></span><span class="lbl">发送</span></button>
+      <textarea id="chatText" data-i18n-placeholder="studio.chatPh" placeholder="先推演命盘，再在此提问…"></textarea>
+      <button class="primary" id="btnSend" disabled><span class="spin"></span><span class="lbl" data-i18n="studio.send">发送</span></button>
     </div>
   </div>
 
   <!-- 右：报告预览 -->
   <div class="col col-report" id="reportCol" data-pane="report">
     <div class="report-bar">
-      <span class="t">命盘报告</span>
+      <span class="t" data-i18n="studio.reportTitle">命盘报告</span>
       <span class="sp"></span>
-      <button id="btnFull">⛶ 全屏</button>
-      <button id="btnExport">导出</button>
-      <button id="btnPrint">打印</button>
+      <button id="btnFull" data-i18n="studio.fullscreen">⛶ 全屏</button>
+      <button id="btnExport" data-i18n="studio.export">导出</button>
+      <button id="btnPrint" data-i18n="studio.print">打印</button>
       <!-- W1-④ · 破站内信死锁：用户自携链接（复制 /r?ref=… 回访入口） -->
-      <button id="btnTakeLink" class="take-link" type="button" title="复制一个回访链接，粘贴到微信收藏 / 备忘录，下次点开直接回到这里">带走回访问入口</button>
+      <button id="btnTakeLink" class="take-link" type="button" data-i18n="studio.takeLink" data-i18n-title="studio.takeLinkTitle" title="复制一个回访链接，粘贴到微信收藏 / 备忘录，下次点开直接回到这里">带走回访问入口</button>
     </div>
     <div class="report-ph" id="reportPlaceholder">
-      <span class="big">命</span>填写左侧信息，推演命盘<br>黑金命盘将在此预览
+      <span class="big">命</span><span data-i18n-html="studio.reportPh">填写左侧信息，推演命盘<br>黑金命盘将在此预览</span>
     </div>
-    <iframe class="report" id="reportFrame" title="命理报告" style="display:none"></iframe>
+    <iframe class="report" id="reportFrame" data-i18n-title="studio.reportFrameTitle" title="命理报告" style="display:none"></iframe>
   </div>
 </div>
 
@@ -311,41 +331,41 @@
 <!-- 游客注册 / 登录浮层（站内，不跳走） -->
 <div class="auth-mask" id="authMask">
   <div class="auth-card">
-    <button class="auth-x" id="authClose" aria-label="关闭">✕</button>
+    <button class="auth-x" id="authClose" data-i18n-aria="studio.close" aria-label="关闭">✕</button>
     <div class="auth-tabs">
-      <button id="authTabLogin" class="on">登录</button>
-      <button id="authTabReg">注册</button>
+      <button id="authTabLogin" class="on" data-i18n="login.tabLogin">登录</button>
+      <button id="authTabReg" data-i18n="login.tabReg">注册</button>
     </div>
     <div id="authLogin">
-      <div class="field"><label>用户名</label><input id="aLUser" placeholder="用户名" autocomplete="username"></div>
-      <div class="field"><label>密码</label><input id="aLPwd" type="password" placeholder="密码" autocomplete="current-password"></div>
-      <button class="primary" id="btnAuthLogin" style="width:100%;padding:11px;font-size:15px">登 录</button>
+      <div class="field"><label data-i18n="login.username">用户名</label><input id="aLUser" data-i18n-placeholder="login.username" placeholder="用户名" autocomplete="username"></div>
+      <div class="field"><label data-i18n="login.password">密码</label><input id="aLPwd" type="password" data-i18n-placeholder="login.password" placeholder="密码" autocomplete="current-password"></div>
+      <button class="primary" id="btnAuthLogin" data-i18n="login.loginBtn" style="width:100%;padding:11px;font-size:15px">登 录</button>
     </div>
     <div id="authReg" style="display:none">
-      <div class="field"><label>用户名</label><input id="aRUser" placeholder="字母 / 数字，用于登录" autocomplete="username"></div>
-      <div class="field"><label>昵称</label><input id="aRNick" placeholder="展示名，如 天机子" autocomplete="nickname"></div>
-      <div class="field"><label>密码 <small>至少 6 位</small></label><input id="aRPwd" type="password" placeholder="设置密码" autocomplete="new-password"></div>
-      <label class="consent"><input type="checkbox" id="aRConsent"> 我已阅读并同意 <a href="/privacy.html" target="_blank" rel="noopener">《隐私政策》</a> 与 <a href="/privacy.html" target="_blank" rel="noopener">《用户协议》</a></label>
-      <button class="primary" id="btnAuthReg" style="width:100%;padding:11px;font-size:15px">注 册</button>
+      <div class="field"><label data-i18n="login.username">用户名</label><input id="aRUser" data-i18n-placeholder="studio.regUserPh" placeholder="字母 / 数字，用于登录" autocomplete="username"></div>
+      <div class="field"><label data-i18n="login.nickname">昵称</label><input id="aRNick" data-i18n-placeholder="login.nicknamePh" placeholder="展示名，如 天机子" autocomplete="nickname"></div>
+      <div class="field"><label><span data-i18n="login.password">密码</span> <small data-i18n="login.passwordHint">至少 6 位</small></label><input id="aRPwd" type="password" data-i18n-placeholder="login.regPasswordPh" placeholder="设置密码" autocomplete="new-password"></div>
+      <label class="consent"><input type="checkbox" id="aRConsent"><span data-i18n-html="login.consent">我已阅读并同意 <a href="/privacy.html" target="_blank" rel="noopener">《隐私政策》</a> 与 <a href="/privacy.html" target="_blank" rel="noopener">《用户协议》</a></span></label>
+      <button class="primary" id="btnAuthReg" data-i18n="login.regBtn" style="width:100%;padding:11px;font-size:15px">注 册</button>
     </div>
     <div id="authStatus" class="status-line"></div>
     <div class="auth-perks">
-      <div class="perks-title">登录后可解锁</div>
-      <div class="perk"><span class="perk-ic">💬</span><span><strong>不限轮次</strong>八字 AI 答疑</span></div>
-      <div class="perk"><span class="perk-ic">📚</span><span><strong>云端永久保存</strong>所有命盘与历史</span></div>
-      <div class="perk"><span class="perk-ic">🌿</span><span><strong>完整版</strong>天机阁 · 推演阁</span></div>
+      <div class="perks-title" data-i18n="studio.perksTitle">登录后可解锁</div>
+      <div class="perk"><span class="perk-ic">💬</span><span data-i18n-html="studio.perk1"><strong>不限轮次</strong>八字 AI 答疑</span></div>
+      <div class="perk"><span class="perk-ic">📚</span><span data-i18n-html="studio.perk2"><strong>云端永久保存</strong>所有命盘与历史</span></div>
+      <div class="perk"><span class="perk-ic">🌿</span><span data-i18n-html="studio.perk3"><strong>完整版</strong>天机阁 · 推演阁</span></div>
     </div>
-    <div class="auth-hint">登录即代表你已阅读并理解：命理仅供文化娱乐参考，不构成任何专业建议。</div>
+    <div class="auth-hint" data-i18n="login.notice">登录即代表你已阅读并理解：命理仅供文化娱乐参考，不构成任何专业建议。</div>
   </div>
 </main>
 
 <footer class="site-footer">
   <span id="icp-no"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">粤ICP备2026138936号-1</a></span>
   <span class="footer-sep">·</span>
-  <a href="/privacy.html">隐私政策</a>
+  <a href="/privacy.html" data-i18n="footer.privacy">隐私政策</a>
   <span class="footer-sep">·</span>
-  <span>本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议</span>
-  <div class="footer-report"><button id="reportBtn" type="button" class="link-btn">⚠ 内容举报 / 反馈</button></div>
+  <span data-i18n="footer.disclaimer">本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议</span>
+  <div class="footer-report"><button id="reportBtn" type="button" class="link-btn" data-i18n="studio.report">⚠ 内容举报 / 反馈</button></div>
 </footer>
 
 <script src="/studio.js"></script>

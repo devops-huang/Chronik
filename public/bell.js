@@ -32,11 +32,18 @@
 .bell-item-body{font-size:12.5px;color:var(--ink);line-height:1.65}
 .bell-item-time{font-size:11px;color:var(--ink-dim);margin-top:7px}`;
 
+  // ── i18n 助手（词条见 locales/*.json 的 bell.*） ──
+  const T = (k, vars) => (window.i18n ? window.i18n.t(k, vars) : k);
+  const LOCALE = () => {
+    const l = window.i18n ? window.i18n.lang() : 'zh';
+    return ({ zh: 'zh-CN', pt: 'pt-BR', en: 'en' })[l] || 'en';
+  };
+
   function fmtTime(iso) {
     try {
       const d = new Date(iso);
       if (isNaN(d.getTime())) return '';
-      return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleString(LOCALE(), { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     } catch { return ''; }
   }
 
@@ -70,16 +77,16 @@
   // 打开抽屉：拉列表 → 渲染 → 标已读 + 清红点
   async function openDrawer(drawer, badge) {
     drawer.hidden = false;
-    drawer.innerHTML = '<div class="bell-loading">加载中…</div>';
+    drawer.innerHTML = '<div class="bell-loading">' + esc(T('common.loading')) + '</div>';
     try {
       const r = await fetch('/api/notifications');
       if (r.status === 401) { hideBell(); return; }
       const d = await r.json().catch(() => null);
       const list = (d && Array.isArray(d.notifications)) ? d.notifications : [];
       if (!list.length) {
-        drawer.innerHTML = '<div class="bell-empty">暂无通知。<br>节气流转、流年命宫、本命年冲太岁等节律提醒会在此出现。</div>';
+        drawer.innerHTML = '<div class="bell-empty">' + T('bell.empty') + '</div>';
       } else {
-        drawer.innerHTML = '<div class="bell-drawer-head">站内信</div>' + list.map((n) => `
+        drawer.innerHTML = '<div class="bell-drawer-head">' + esc(T('bell.title')) + '</div>' + list.map((n) => `
           <div class="bell-item ${n.read ? 'read' : 'unread'}">
             <div class="bell-item-title">${esc(n.title)}</div>
             <div class="bell-item-body">${esc(n.body)}</div>
@@ -90,7 +97,7 @@
       try { await fetch('/api/notifications/read-all', { method: 'POST' }); } catch {}
       badge.hidden = true;
     } catch {
-      drawer.innerHTML = '<div class="bell-empty">加载失败，请稍后重试。</div>';
+      drawer.innerHTML = '<div class="bell-empty">' + esc(T('bell.loadFailed')) + '</div>';
     }
   }
 
@@ -101,7 +108,7 @@
 
     const btn = document.createElement('button');
     btn.className = 'bell-btn';
-    btn.setAttribute('aria-label', '通知');
+    btn.setAttribute('aria-label', T('bell.aria'));
     btn.innerHTML = '🔔<span class="bell-badge" id="bellBadge" hidden>0</span>';
 
     const drawer = document.createElement('div');
@@ -124,6 +131,12 @@
       if (!drawer.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
         drawer.hidden = true;
       }
+    });
+
+    // 语言切换：抽屉若正打开，按新语言重渲染一份（提示语与时间格式随语言走）
+    document.addEventListener('langchange', () => {
+      btn.setAttribute('aria-label', T('bell.aria'));
+      if (!drawer.hidden) openDrawer(drawer, badge);
     });
   }
 
