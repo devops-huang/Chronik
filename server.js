@@ -20,11 +20,15 @@ import {
   requestPasswordReset, confirmPasswordReset,
 } from './lib/auth.js';
 import { computeAll, chartContextText } from './lib/core.js';
+import { localizeNarrative } from './lib/narrative.js';
 import { listAllCities, resolveLocation } from './lib/chart.js';
 import { buildMonthGrid, buildTodayFortune, getWeather, getWeatherByLatLon, todayInShanghai } from './lib/home.js';
 import { deriveNatalFromBirth } from './lib/fortuneEngine.js';
 import { loadLlmConfig, saveLlmConfig, maskKey } from './lib/llmConfig.js';
 import { isBlocked, getRefusal, DISCLAIMER_L2, DISCLAIMER_L3, isHighRisk, CHAT_ROLE_DECLARATION } from './lib/content-policy.js';
+// i18n Phase 7 · 服务端三语（与前端共用 public/locales/*.json）
+import { resolveLang, t, M, SUPPORTED as I18N_LANGS, DEFAULT_LANG } from './lib/i18n.js';
+import { disclaimer, refusal, chatSuffix } from './lib/content-i18n.js';
 // I3 · 服务端权威配额（P0-6）：统一配额入口 + 付费授权查询
 import { checkAiQuota, getQuotaInfo, getEntitlement, FREE_DAILY_ROUNDS, PAID_DAILY_ROUNDS } from './lib/quota.js';
 // I2 · 留存节律调度器（Backend-B）：进程内轻量扫描器，复用 lib/db.js 与 tyme4ts
@@ -207,6 +211,7 @@ async function handleHome(req, res) {
   // I0 · 拆登录墙：游客（匿名）可直接浏览首页全部内容；
   // 仅排盘 / AI 时才需登录（由对应接口负责 fail-open 引导，本接口不拦截游客）。
   const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
+  const lang = resolveLang(req);
   const isGuest = ctx.isGuest;
   const user = ctx.user;
   const { dateStr } = todayInShanghai();
@@ -223,10 +228,10 @@ async function handleHome(req, res) {
       updateProfile(user.id, { day_stem: natal.dayStem, month_zhi: natal.monthZhi }).catch(() => {});
     }
     fortune = buildTodayFortune(
-      user.day_master ? { dayMasterElement: user.day_master } : null, dateStr, natal);
+      user.day_master ? { dayMasterElement: user.day_master } : null, dateStr, natal, lang);
   } else {
     // 游客态：无命盘，展示通用运势（前端降级展示，不报错）
-    fortune = buildTodayFortune(null, dateStr, null);
+    fortune = buildTodayFortune(null, dateStr, null, lang);
   }
   // 优先用前端传来的经纬度（当前定位），否则回退用户城市 / 北京
   const u = new URL(req.url, 'http://x');
@@ -235,15 +240,20 @@ async function handleHome(req, res) {
     && Number(lat) >= -90 && Number(lat) <= 90 && Number(lon) >= -180 && Number(lon) <= 180;
   let weather = null;
   try {
-    if (haveLL) weather = await getWeatherByLatLon(Number(lat), Number(lon));
-    else if (!isGuest && user?.weather_city) weather = await getWeather(user.weather_city);
-    else weather = await getWeather('北京');
+    if (haveLL) weather = await getWeatherByLatLon(Number(lat), Number(lon), lang);
+    else if (!isGuest && user?.weather_city) weather = await getWeather(user.weather_city, lang);
+    else weather = await getWeather(lang === 'zh' ? '北京' : 'Beijing', lang);
   } catch (e) { weather = { error: e.message }; }
   sendJson(res, 200, {
     user: user ? { nickname: user.nickname, username: user.username, weatherCity: user.weather_city } : null,
     isGuest,
+    lang,
     today: dateStr,
-    monthGrid, monthLabel: `${y}年${m}月`,
+    monthGrid,
+    monthLabel: lang === 'zh'
+      ? `${y}年${m}月`
+      : new Intl.DateTimeFormat(lang === 'pt' ? 'pt-BR' : 'en-US', { year: 'numeric', month: 'long' })
+          .format(new Date(Date.UTC(y, m - 1, 1))),
     fortune, weather,
   });
 }
@@ -280,15 +290,18 @@ async function handleChart(req, res) {
   if (ctx.isGuest) {
     const rate = await checkChartRate(clientIp(req)).catch(() => ({ ok: true, remaining: 99 }));
     if (!rate.ok) {
-      return sendJson(res, 429, { needLogin: true, error: `游客排盘过于频繁，请约 ${rate.resetIn} 分钟后再试；或登录后不限次数` });
+      const rl = resolveLang(req);
+      return sendJson(res, 429, { needLogin: true, error: t(rl, 'api.chartRateLimit', { min: rate.resetIn }) });
     }
   }
   let body;
   try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: e.message }); }
+  const lang = resolveLang(req, body);
   try {
     const out = await computeAll(body, {
       fortune: body.fortune || undefined,
       interpret: { currentYear: body.currentYear, today: body.today },
+      lang,
     });
     const slim = {
       chart: {
@@ -299,9 +312,10 @@ async function handleChart(req, res) {
       fortune: { years: out.fortune.result.years, months: out.fortune.result.months, dayun: out.fortune.natal?.大运 },
       interpret: out.interpret,
       reportHtml: out.reportHtml,
-      chartContext: chartContextText(out.chart, out.interpret),
+      chartContext: chartContextText(out.chart, out.interpretRaw, lang),
+      lang,
     };
-    const title = body.title || `${out.chart.pillars.join(' ')} 命盘`;
+    const title = body.title || `${out.chart.pillars.join(' ')} ${lang === 'zh' ? '命盘' : (lang === 'pt' ? 'Mapa' : 'Chart')}`;
     let chartId = null;
     if (ctx.isGuest) {
       // 游客：匿名存档（user_id 留空），注册后可并入账号
@@ -309,7 +323,7 @@ async function handleChart(req, res) {
         `INSERT INTO charts (user_id, anon_id, title, input, chart, interpret, fortune, report_html)
          VALUES (NULL, $1, $2, $3, $4, $5, $6, $7) RETURNING id`,
         [ctx.anonId, title, JSON.stringify(body),
-         JSON.stringify(slim.chart), JSON.stringify(out.interpret), JSON.stringify(slim.fortune), out.reportHtml]
+         JSON.stringify(slim.chart), JSON.stringify(out.interpretRaw), JSON.stringify(slim.fortune), out.reportHtml]
       );
       chartId = r.rows[0].id;
     } else {
@@ -317,7 +331,7 @@ async function handleChart(req, res) {
         `INSERT INTO charts (user_id, title, input, chart, interpret, fortune, report_html)
          VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
         [ctx.user.id, title, JSON.stringify(body),
-         JSON.stringify(slim.chart), JSON.stringify(out.interpret), JSON.stringify(slim.fortune), out.reportHtml]
+         JSON.stringify(slim.chart), JSON.stringify(out.interpretRaw), JSON.stringify(slim.fortune), out.reportHtml]
       );
       chartId = r.rows[0].id;
       // 同步出生信息 / 日主五行到用户资料（首次或补全）
@@ -351,14 +365,15 @@ async function handleChartsList(req, res) {
 }
 async function handleChartGet(req, res, id) {
   const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
-  if (ctx.isGuest) return sendJson(res, 403, { error: '请登录后查看历史命盘' });
+  const lang = resolveLang(req);
+  if (ctx.isGuest) return sendJson(res, 403, { error: t(lang, 'api.needLoginForChart') });
   const r = await query(`SELECT * FROM charts WHERE id=$1 AND user_id=$2`, [id, ctx.user.id]);
   if (r.rowCount === 0) return sendJson(res, 404, { error: '未找到' });
   const c = r.rows[0];
   sendJson(res, 200, {
     id: c.id, title: c.title, created_at: c.created_at,
-    chart: c.chart, interpret: c.interpret, fortune: c.fortune, reportHtml: c.report_html,
-    chartContext: chartContextText(c.chart, c.interpret),
+    chart: c.chart, interpret: localizeNarrative(c.interpret, lang), fortune: c.fortune, reportHtml: c.report_html,
+    chartContext: chartContextText(c.chart, c.interpret, lang),
   });
 }
 
@@ -424,7 +439,7 @@ async function buildChatMessages(conversation, chartContext) {
 }
 
 /** R5a · 检索式兜底：从 charts.interpret 的结构化段落按用户问题关键词匹配 1–3 条，组装带 L2 免责的卡片。 */
-async function buildRetrievalFallback(chartId, question, ctx) {
+async function buildRetrievalFallback(chartId, question, ctx, lang = 'en') {
   let interpret = null;
   if (chartId) {
     try {
@@ -436,7 +451,8 @@ async function buildRetrievalFallback(chartId, question, ctx) {
       interpret = r.rows[0]?.interpret || null;
     } catch (e) { console.warn('[fallback] 读取 interpret 失败：', e.message); }
   }
-  const header = '### 🔍 AI 实时答疑暂时不可用\n\n以下是你命盘中与问题**最相关**的部分（由**规则/检索生成**，非 AI 实时作答）：';
+  const API = (k, fb, vars) => { const v = t(lang, 'api.' + k, vars); return v === 'api.' + k ? fb : v; };
+  const header = API('fallbackHeader', '### 🔍 AI 实时答疑暂时不可用\n\n以下是你命盘中与问题**最相关**的部分（由**规则/检索生成**，非 AI 实时作答）：');
   // 中文 2-gram 关键词，用于匹配领域
   const clean = String(question || '').replace(/[^\u4e00-\u9fffA-Za-z]/g, '');
   const grams = [];
@@ -457,32 +473,32 @@ async function buildRetrievalFallback(chartId, question, ctx) {
   const parts = [];
   for (const d of picks) {
     const pts = (d.points || []).filter(Boolean);
-    parts.push(`**${d.icon || '◈'} ${d.name || '命理要点'}**\n${d.summary || ''}` + (pts.length ? '\n- ' + pts.join('\n- ') : ''));
+    parts.push(`**${d.icon || '◈'} ${d.name || API('fallbackPoint', '命理要点')}**\n${d.summary || ''}` + (pts.length ? '\n- ' + pts.join('\n- ') : ''));
   }
   // 大运 / 流年补充（容错，缺字段不崩）
   try {
     if (interpret?.currentDayun) {
       const cd = interpret.currentDayun;
-      parts.push(`**📅 当前大运**\n${cd.ganzhi || ''}大运 ${cd.stemGod || ''}当令：${cd.headline || ''}`);
+      parts.push(`**📅 ${API('fallbackDayun', '当前大运')}**\n${cd.ganzhi || ''} ${cd.stemGod || ''} ${cd.headline || ''}`);
     }
     if (Array.isArray(interpret?.liunian)) {
       const cl = interpret.liunian.find((y) => y.isCurrent) || interpret.liunian[0];
-      if (cl) parts.push(`**🗓 今年流年（${cl.year || ''}）**\n${cl.ganzhi || cl.ganji || ''}：${cl.headline || ''}`);
+      if (cl) parts.push(`**🗓 ${API('fallbackLiunian', '今年流年')}（${cl.year || ''}）**\n${cl.ganzhi || cl.ganji || ''}：${cl.headline || ''}`);
     }
   } catch {}
-  const body = parts.join('\n\n') || '（暂无可检索的命盘结构化内容，请稍后重试或重新推演命盘）';
-  return `${header}\n\n${body}\n\n> ${DISCLAIMER_L2}\n\n> 本内容由**规则/检索生成**，仅供文化研究与娱乐参考；如需针对性解读，请点击「重试」或稍后再问。`;
+  const body = parts.join('\n\n') || API('fallbackNoContent', '（暂无可检索的命盘结构化内容，请稍后重试或重新推演命盘）');
+  return `${header}\n\n${body}\n\n> ${disclaimer(2, lang)}\n\n> ${API('fallbackNote', '本内容由**规则/检索生成**，仅供文化研究与娱乐参考；如需针对性解读，请点击「重试」或稍后再问。')}`;
 }
 
 /** R5a · 以 SSE 形式下发检索式兜底卡片（与正常流式共用前端解析契约，前端识别 fallback 字段）。 */
-function emitFallbackSSE(res, card, conversationId) {
+function emitFallbackSSE(res, card, conversationId, lang = 'en') {
   applySecurityHeaders(res);
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive',
     ...(conversationId ? { 'X-Conversation-Id': String(conversationId) } : {}),
   });
-  res.write(`data: ${JSON.stringify({ fallback: true, card, disclaimer: DISCLAIMER_L2, retry: true })}\n\n`);
+  res.write(`data: ${JSON.stringify({ fallback: true, card, disclaimer: disclaimer(2, lang), retry: true })}\n\n`);
   res.write(`data: [DONE]\n\n`);
   res.end();
 }
@@ -505,13 +521,13 @@ function emitFallbackSSE(res, card, conversationId) {
  * @param {import('http').ServerResponse} res
  * @param {string} category 命中类别 key（A–J）
  */
-function emitRefusalSSE(res, category) {
+function emitRefusalSSE(res, category, lang = 'en') {
   applySecurityHeaders(res);
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive',
   });
-  res.write(`data: ${JSON.stringify({ error: getRefusal(category), blocked: true, category })}\n\n`);
+  res.write(`data: ${JSON.stringify({ error: refusal(category, lang), blocked: true, category })}\n\n`);
   res.write(`data: [DONE]\n\n`);
   res.end();
 }
@@ -546,9 +562,10 @@ async function handleChat(req, res) {
   const ctx = await requireUserOrAnon(req, res); if (!ctx) return;
   let body;
   try { body = await readBody(req); } catch (e) { return sendJson(res, 400, { error: e.message }); }
+  const lang = resolveLang(req, body);
   const message = body.message;
   if (!message || !message.content || !String(message.content).trim()) {
-    return sendJson(res, 400, { error: '缺少对话内容' });
+    return sendJson(res, 400, { error: t(lang, 'api.missingMessage') });
   }
   const { chartId, chartContext, conversationId } = body;
   // P0-6 · 统一配额（guest 3/日、user 30/日-if-paid），原子 UPSERT 计数；超限 402 + paywall。
@@ -565,8 +582,9 @@ async function handleChat(req, res) {
       remaining: quota.remaining,
       limit: quota.limit,
       error: ctx.isGuest
-        ? '免费问答已达 3 轮/日上限，登录后即可继续追问 👇'
-        : '今日 AI 额度已用尽，升级结缘堂解锁每日 30 轮问答 👑',
+        ? t(lang, 'api.paywallGuest')
+        : t(lang, 'api.paywallPaid'),
+      lang,
     });
   }
   // P0-9 · 高风险倾向判定（健康/投资/法律）。仅作"倾向"识别，不做确定性断言，避免正常命理问答被误杀。
@@ -575,7 +593,7 @@ async function handleChat(req, res) {
   const inputBlock = isBlocked(message.content);
   if (inputBlock.hit) {
     console.log('[chat] 输入命中内容禁区 %s，硬拦截拒答', inputBlock.category);
-    return emitRefusalSSE(res, inputBlock.category);
+    return emitRefusalSSE(res, inputBlock.category, lang);
   }
   // 配置优先级：管理员服务端配置 > 环境变量（前端不再传入密钥，避免泄露）
   const srv = loadLlmConfig();
@@ -584,14 +602,14 @@ async function handleChat(req, res) {
   const model = (srv?.model || process.env.LLM_MODEL || '').trim();
   if (!baseUrl || !apiKey || !model) {
     // R5a · 配置缺失也走检索式兜底，不白屏不 500
-    return emitFallbackSSE(res, await buildRetrievalFallback(chartId, message.content, ctx));
+    return emitFallbackSSE(res, await buildRetrievalFallback(chartId, message.content, ctx, lang), null, lang);
   }
   // P1-7 · AI 成本护栏（fail-open：异常/观察期均放行，仅超限且非观察期才 429）
   const budget = await checkAiBudget(ctx);
   if (budget) return sendJson(res, budget.code, { error: budget.message });
   // 解析 / 创建会话
   const conversation = await resolveConversation(ctx, body);
-  if (!conversation) return sendJson(res, 403, { error: '无法访问该会话' });
+  if (!conversation) return sendJson(res, 403, { error: t(lang, 'api.sessionForbidden') });
   // 落库用户消息
   await query('INSERT INTO messages (conversation_id, role, content, tokens) VALUES ($1,$2,$3,$4)',
     [conversation.id, 'user', message.content, estTokens(message.content)]);
@@ -621,7 +639,7 @@ async function handleChat(req, res) {
   } catch (e) {
     console.log('[chat] upstream fetch failed after %dms: %s', Date.now() - t0, e.message);
     // R5a · 上游连不上/超时 → 检索式兜底，不 500
-    return emitFallbackSSE(res, await buildRetrievalFallback(chartId, message.content, ctx), conversation.id);
+    return emitFallbackSSE(res, await buildRetrievalFallback(chartId, message.content, ctx, lang), conversation.id, lang);
   }
   console.log('[chat] upstream status=%d in %dms', upstream.status, Date.now() - t0);
   // 客户端断开立刻终止上游，避免挂死
@@ -636,7 +654,7 @@ async function handleChat(req, res) {
     let detail = ''; try { detail = await upstream.text(); } catch {}
     console.log('[chat] upstream not ok: %d %s', upstream.status, detail.slice(0,200));
     // R5a · 上游返回非 200 → 检索式兜底，不静默报错
-    return emitFallbackSSE(res, await buildRetrievalFallback(chartId, message.content, ctx), conversation.id);
+    return emitFallbackSSE(res, await buildRetrievalFallback(chartId, message.content, ctx, lang), conversation.id, lang);
   }
   applySecurityHeaders(res);
   res.writeHead(200, {
@@ -690,7 +708,7 @@ async function handleChat(req, res) {
     flush();
     // R5a · 200 但空流（额度耗尽/上游返回空）：下发检索式兜底，避免静默空白
     if (chunkN === 0 && !blocked) {
-      fallbackCard = await buildRetrievalFallback(chartId, message.content, ctx);
+      fallbackCard = await buildRetrievalFallback(chartId, message.content, ctx, lang);
       isFallback = true;
       res.write(`data: ${JSON.stringify({ fallback: true, card: fallbackCard, disclaimer: DISCLAIMER_L2, retry: true })}\n\n`);
     }
@@ -698,8 +716,8 @@ async function handleChat(req, res) {
     // 基线 L2 必带；高风险（健康/投资/法律倾向，high_risk）在 L2 基础上追加 L3（见 COMPLIANCE-WORDING.md §二）。
     // 空流兜底已自带 disclaimer 字段，此处仅对真实 AI 流追加，避免重复。
     if (!blocked && !isFallback) {
-      res.write(`data: ${JSON.stringify({ type: 'disclaimer', level: 'L2', text: DISCLAIMER_L2 })}\n\n`);
-      if (highRisk) res.write(`data: ${JSON.stringify({ type: 'disclaimer', level: 'L3', text: DISCLAIMER_L3 })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'disclaimer', level: 'L2', text: disclaimer(2, lang) })}\n\n`);
+      if (highRisk) res.write(`data: ${JSON.stringify({ type: 'disclaimer', level: 'L3', text: disclaimer(3, lang) })}\n\n`);
     }
     res.write(`data: [DONE]\n\n`);
   } catch (e) {
@@ -707,7 +725,7 @@ async function handleChat(req, res) {
   } finally {
     // 落库 assistant 消息（即使客户端中断也尽量保留已生成部分；命中禁区则存拒答而非违规内容）
     let assistantContent = full;
-    if (blocked) { assistantContent = getRefusal(blockedCategory); auditOutput = assistantContent; }
+    if (blocked) { assistantContent = refusal(blockedCategory, lang); auditOutput = assistantContent; }
     else if (isFallback) { assistantContent = fallbackCard; auditOutput = fallbackCard; }
     if (assistantContent) {
       await query('INSERT INTO messages (conversation_id, role, content, tokens) VALUES ($1,$2,$3,$4)',
@@ -1274,6 +1292,10 @@ const server = createServer(async (req, res) => {
         // I3 · 付费墙口径（供前端展示 + test-paywall 探测）
         aiFreeRounds: FREE_DAILY_ROUNDS,
         paidDailyRounds: PAID_DAILY_ROUNDS,
+        // i18n Phase 7 · 语言能力与本次请求解析结果（前端可据此对齐 <html lang>）
+        languages: I18N_LANGS,
+        defaultLang: DEFAULT_LANG,
+        lang: resolveLang(req),
       });
     }
     if (req.method === 'GET' && url === '/api/cities') return sendJson(res, 200, { cities: listAllCities() });

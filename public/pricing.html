@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>辰箓 · 结缘堂方案</title>
+  <title data-i18n-title="meta.pricingTitle">辰箓 · 结缘堂方案</title>
+  <style>html[data-i18n-pending] body{visibility:hidden}</style>
+  <script src="/i18n.js"></script>
+  <script src="/pricing-plans.js"></script>
   <style>
     :root{
       --bg:#0e0c08; --panel:#171310; --panel-2:#1f1a14; --line:#33291d;
@@ -14,14 +17,20 @@
     body{margin:0;min-height:100dvh;background:radial-gradient(1200px 600px at 50% -10%,#241c12 0%,var(--bg) 60%);
       font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--txt);
       padding:0 0 48px}
-    .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;max-width:760px;margin:0 auto}
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;max-width:760px;margin:0 auto}
     .nav .brand{display:flex;align-items:center;gap:9px;font-size:17px;letter-spacing:1px;color:var(--gold-bright)}
     .nav .brand .seal{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--gold-bright),var(--gold));
       color:#1a140a;display:flex;align-items:center;justify-content:center;font-weight:800}
     .nav a{color:var(--gold);text-decoration:none;font-size:13.5px;opacity:.9}
+    .nav .tools{display:flex;align-items:center;gap:12px}
+    .lang-switch{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.03)}
+    .lang-switch button{padding:4px 8px;min-height:30px;font-size:11.5px;letter-spacing:.5px;background:transparent;
+      border:none;border-radius:6px;color:var(--muted);cursor:pointer;transition:.15s}
+    .lang-switch button.on{background:var(--gold);color:#1a140a;font-weight:700}
+    .lang-switch button:not(.on):hover{color:var(--gold-bright)}
     .wrap{max-width:760px;margin:0 auto;padding:8px 20px}
     .hero{text-align:center;margin:18px 0 26px}
-    .hero h1{font-size:25px;margin:0 0 8px;color:var(--gold-bright);letter-spacing:2px}
+    .hero h1{font-size:25px;margin:0 0 8px;color:var(--gold-bright);letter-spacing:2px;line-height:1.4}
     .hero p{color:var(--muted);font-size:13.5px;margin:0;line-height:1.7}
     .card{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);
       border-radius:18px;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);margin-bottom:22px}
@@ -43,6 +52,9 @@
     .pay-box .qr img{width:100%;height:100%;object-fit:contain}
     .pay-box .hint{font-size:13px;color:var(--muted);line-height:1.7}
     .pay-box .hint b{color:var(--gold-bright)}
+    .pay-box .mail{display:inline-block;margin-top:12px;padding:10px 18px;border-radius:10px;text-decoration:none;
+      font-weight:700;font-size:13.5px;letter-spacing:.5px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#1a140a}
+    .pay-box .mail:hover{filter:brightness(1.06)}
     .redeem{border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:16px;background:var(--bg)}
     .redeem h3{margin:0 0 10px;font-size:15px;color:var(--gold)}
     .redeem .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -77,12 +89,24 @@
     .banner .b-actions a{display:inline-block;text-decoration:none;font-size:13px;font-weight:700;letter-spacing:1px;
       padding:8px 16px;border-radius:10px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#1a140a;transition:filter .15s}
     .banner .b-actions a:hover{filter:brightness(1.06)}
+    @media(max-width:520px){
+      .nav{flex-wrap:wrap}
+      .price{font-size:38px}
+      .hero h1{font-size:21px}
+    }
   </style>
 </head>
 <body>
   <div class="nav">
-    <div class="brand"><span class="seal">箓</span>辰箓</div>
-    <a href="/studio.html">← 返回推演阁</a>
+    <div class="brand"><span class="seal">箓</span><span data-i18n="common.brandName">辰箓</span></div>
+    <div class="tools">
+      <div class="lang-switch" role="group" data-i18n-aria="common.langLabel" aria-label="Language">
+        <button type="button" data-lang-btn="en" aria-pressed="false">EN</button>
+        <button type="button" data-lang-btn="pt" aria-pressed="false">PT</button>
+        <button type="button" data-lang-btn="zh" aria-pressed="false">中</button>
+      </div>
+      <a href="/studio.html" data-i18n="pricing.navBack">← 返回推演阁</a>
+    </div>
   </div>
 
   <div class="wrap">
@@ -90,79 +114,83 @@
     <div id="renewBanner" class="banner" hidden></div>
 
     <div class="hero">
-      <h1>辰箓结缘堂 · 解锁无限命理答疑</h1>
-      <p>每日 30 轮 AI 命理解读 · 永久保存所有命盘与历史</p>
+      <h1 data-i18n="pricing.heroTitle">辰箓结缘堂 · 解锁无限命理答疑</h1>
+      <p data-i18n="pricing.heroSub">每日 30 轮 AI 命理解读 · 永久保存所有命盘与历史</p>
     </div>
 
     <!-- 年卡主推 -->
     <div class="card">
-      <span class="plan-tag">年卡主推</span>
+      <span class="plan-tag" data-i18n="pricing.planTag">年卡主推</span>
       <div class="price-row">
-        <div class="price"><span id="priceYear">99</span><span class="per">缘券/年</span></div>
+        <div class="price"><span id="priceYear">99</span><span class="per" data-i18n="pricing.per">缘券/年</span></div>
         <span class="orig" id="priceOrig">199 缘券</span>
-        <span class="save">省 100 缘券</span>
-        <div class="price-note">（1 缘券 = 1 元）</div>
+        <span class="save" id="saveTag"></span>
+        <div class="price-note" id="unitNote" data-i18n="pricing.unitNote">（1 缘券 = 1 元）</div>
       </div>
       <ul class="features">
-        <li><span class="ic">✓</span><span>每日 <b style="color:var(--gold-bright)">30 轮</b> AI 命理答疑（免费仅 3 轮/日）</span></li>
-        <li><span class="ic">✓</span><span>云端永久保存全部命盘、报告与对话历史</span></li>
-        <li><span class="ic">✓</span><span>结缘堂专属深度解读，无游客轮次限制</span></li>
-        <li><span class="ic">✓</span><span>一次付费，全年畅享，随时可取消自动续费（如有）</span></li>
+        <li><span class="ic">✓</span><span data-i18n-html="pricing.f1">每日 <b>30 轮</b> AI 命理答疑（免费仅 3 轮/日）</span></li>
+        <li><span class="ic">✓</span><span data-i18n="pricing.f2">云端永久保存全部命盘、报告与对话历史</span></li>
+        <li><span class="ic">✓</span><span data-i18n="pricing.f3">结缘堂专属深度解读，无游客轮次限制</span></li>
+        <li><span class="ic">✓</span><span data-i18n="pricing.f4">一次付费，全年畅享，随时可取消自动续费（如有）</span></li>
       </ul>
 
-      <!-- 个人收款码占位 -->
-      <div class="pay-box">
-        <div class="qr" id="qrBox"><img src="/payment-qr.jpg" alt="微信支付收款码" loading="lazy"></div>
-        <div class="hint">
-          扫码付款 <b><span id="priceYear2">99</span> 缘券/年</b> 后，<br>
-          凭转账<b>备注 / 订单号</b>联系运营获取<b>兑换码</b>，即可激活结缘堂。
-        </div>
+      <!-- 微信支付（CNY 区） -->
+      <div class="pay-box" id="payBoxCny">
+        <div class="qr" id="qrBox"><img src="/payment-qr.jpg" alt="" data-i18n-aria="pricing.qrAlt" loading="lazy"></div>
+        <div class="hint" id="payHintCny">扫码付款 <b>99 缘券/年</b> 后，凭转账<b>备注 / 订单号</b>联系运营获取<b>兑换码</b>，即可激活结缘堂。</div>
+      </div>
+
+      <!-- 国际付款（非 CNY 区） -->
+      <div class="pay-box" id="payBoxIntl" hidden>
+        <div class="hint" id="payHintIntl" data-i18n="pricing.payHintIntl"></div>
+        <a class="mail" id="payMail" href="mailto:tonyandrewhn@outlook.com" data-i18n="pricing.contactCta">邮件联系安排付款</a>
       </div>
     </div>
 
     <!-- 我有兑换码 -->
     <div class="card" id="redeem">
       <div class="redeem">
-        <h3>🎟️ 我有兑换码</h3>
+        <h3 data-i18n="pricing.redeemTitle">🎟️ 我有兑换码</h3>
         <div class="row">
-          <input id="redeemCode" type="text" placeholder="输入兑换码（如 YEAR-XXXX-XXXX）" autocomplete="off">
-          <button class="btn" id="redeemBtn">激活结缘堂</button>
+          <input id="redeemCode" type="text" data-i18n-placeholder="pricing.redeemPlaceholder"
+                 placeholder="输入兑换码（如 YEAR-XXXX-XXXX）" autocomplete="off">
+          <button class="btn" id="redeemBtn" data-i18n="pricing.redeemBtn">激活结缘堂</button>
         </div>
-        <div class="status info" id="redeemStatus">已付款并取得兑换码？在此激活。</div>
+        <div class="status info" id="redeemStatus" data-i18n="pricing.redeemHint">已付款并取得兑换码？在此激活。</div>
       </div>
       <div class="success" id="redeemSuccess">
-        <div class="big">🎉 结缘堂已激活！</div>
-        <div id="redeemSuccessMsg">你的年卡结缘堂已生效，每日 30 轮 AI 答疑已解锁。</div>
-        <a class="btn" href="/studio.html" style="display:inline-block;margin-top:12px;text-decoration:none">前往推演阁体验 →</a>
+        <div class="big" data-i18n="pricing.redeemOk">🎉 结缘堂已激活！</div>
+        <div id="redeemSuccessMsg" data-i18n="pricing.redeemOkMsg">你的年卡结缘堂已生效，每日 30 轮 AI 答疑已解锁。</div>
+        <a class="btn" href="/studio.html" style="display:inline-block;margin-top:12px;text-decoration:none" data-i18n="pricing.redeemGo">前往推演阁体验 →</a>
       </div>
     </div>
 
     <!-- 免责声明（显著 L2） -->
     <div class="disclaimer">
-      <div class="section-title">⚠️ 重要声明</div>
-      <b>以上内容为传统命理文化的娱乐性解读，由 AI 生成，不构成医疗、法律、投资或任何专业建议。</b>
-      涉及健康、法律、财务等重大决策，请咨询对应持证专业人士。辰箓仅是文化研究与展示工具，不对据此作出的任何决策负责。
+      <div class="section-title" data-i18n="pricing.discTitle">⚠️ 重要声明</div>
+      <div data-i18n-html="pricing.discBody"></div>
     </div>
 
     <!-- 退款说明（真实） -->
     <div class="card" style="margin-top:22px">
-      <div class="section-title">💎 退款说明</div>
+      <div class="section-title" data-i18n="pricing.refundTitle">💎 退款说明</div>
       <div class="refund">
-        <p><b>7 天无理由退款：</b>自兑换码激活之日起 7 天内，如对结缘堂服务不满意，可凭兑换码联系运营申请全额退款（未使用或极少使用场景下受理）。</p>
-        <p><b>不予退款情形：</b>激活后已大量使用 AI 答疑（如消耗超过 50% 年度额度）或存在疑似滥用 / 转售兑换码行为的，原则上不予退款，但可协商折算。</p>
-        <p><b>退款方式：</b>原路退回至付款账户，到账周期依支付渠道而定（一般 3–7 个工作日）。如有争议，以运营沟通结果为准。</p>
-        <p style="color:var(--gold)">注：当前为个人收款码试运行，正式在线支付与自动退款通道上线后，退款将改为系统内一键处理。</p>
+        <p data-i18n-html="pricing.refund1"></p>
+        <p data-i18n-html="pricing.refund2"></p>
+        <p data-i18n-html="pricing.refund3"></p>
+        <p style="color:var(--gold)" data-i18n="pricing.refundNote"></p>
       </div>
     </div>
 
     <div class="foot">
-      本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议<br>
-      <a href="/privacy.html">隐私政策</a> · <a href="/index.html">天机阁</a> · <a href="/studio.html">推演阁</a>
+      <span data-i18n="pricing.foot">本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议</span><br>
+      <a href="/privacy.html" data-i18n="footer.privacy">隐私政策</a> ·
+      <a href="/index.html" data-i18n="nav.home">天机阁</a> ·
+      <a href="/studio.html" data-i18n="nav.studio">推演阁</a>
     </div>
   </div>
 
-  
-    <div style="text-align:center;font-size:12px;margin-top:10px;color:#8a7a5c"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">粤ICP备2026138936号-1</a></div>
-    <script src="/pricing.js"></script>
+  <div style="text-align:center;font-size:12px;margin-top:10px;color:#8a7a5c"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">粤ICP备2026138936号-1</a></div>
+  <script src="/pricing.js"></script>
 </body>
 </html>

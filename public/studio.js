@@ -164,7 +164,7 @@
         const location = (($('location') || {}).value || '').trim();
         if (!date) { withEl('status', (s) => { s.textContent = T('studio.errDate'); }); return; }
         if (!state.gender) { withEl('status', (s) => { s.textContent = T('studio.errGender'); }); return; }
-        const body = { calendar: state.calendar, date, time, gender: state.gender, location };
+        const body = { calendar: state.calendar, date, time, gender: state.gender, location, lang: LANG() };
         const sy = (($('startY') || {}).value || '').trim(), ey = (($('endY') || {}).value || '').trim();
         if (sy && ey) body.fortune = { level: 'month', startDateTime: `${sy}-01-01`, endDateTime: `${ey}-12-31` };
         b.disabled = true;

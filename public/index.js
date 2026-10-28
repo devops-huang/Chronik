@@ -131,6 +131,7 @@
       let url = '/api/home';
       const p = state.pos;
       if (p && p.lat && p.lon) url += `?lat=${encodeURIComponent(p.lat)}&lon=${encodeURIComponent(p.lon)}`;
+      url += (url.includes('?') ? '&' : '?') + 'lang=' + encodeURIComponent(LANG());
       const r = await fetch(url);
       const d = await (r.ok ? r.json() : null);
       if (!d) { withEl('dash', (e) => { e.innerHTML = `<div class="loading">${esc(T('home.loadFailed'))}</div>`; }); return; }

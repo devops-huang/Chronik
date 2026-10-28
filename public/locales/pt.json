@@ -3,7 +3,9 @@
     "title": "Chen Lu · Entrar · Salão dos Segredos Celestiais",
     "homeTitle": "Salão dos Segredos Celestiais",
     "studioTitle": "Chen Lu · Estúdio",
-    "nianliTitle": "Chen Lu · Calendário"
+    "nianliTitle": "Chen Lu · Calendário",
+    "pricingTitle": "Chen Lu · Assinatura",
+    "privacyTitle": "Chen Lu · Política de Privacidade"
   },
   "common": {
     "brandName": "辰箓",
@@ -286,5 +288,380 @@
     "shen": "Estrelas simbólicas",
     "points": "Pontos-chave",
     "l1": "A Chen Lu é uma ferramenta de estudo e apresentação da cultura tradicional chinesa do destino. Todo o conteúdo é gerado automaticamente por IA a partir de doutrinas públicas do destino; destina-se apenas a estudo cultural e entretenimento, não constitui aconselhamento profissional de qualquer natureza e não implica responsabilidade por decisões tomadas com base nele."
+  },
+  "pricing": {
+    "navBack": "← Voltar ao Estúdio",
+    "heroTitle": "Assinatura Chen Lu · Leituras sem limite",
+    "heroSub": "30 leituras de mapa por dia · Todos os mapas e conversas guardados para sempre",
+    "planTag": "ANUAL · MELHOR OFERTA",
+    "per": "/ ano",
+    "unitNote": "(1 yuan de crédito = ¥1)",
+    "f1": "<b>30 consultas de IA</b> por dia (3 por dia no plano gratuito)",
+    "f2": "Todos os mapas, relatórios e conversas guardados na sua conta, permanentemente",
+    "f3": "Leituras aprofundadas no Estúdio, sem limite de rodadas de visitante",
+    "f4": "Um pagamento cobre um ano inteiro; cancele a renovação automática quando quiser (se ativada)",
+    "qrAlt": "QR code do WeChat Pay",
+    "payHintCny": "Escaneie e pague <b>{price}</b>; depois envie-nos o comprovante ou o número do pedido e emitiremos o seu <b>código de ativação</b>.",
+    "payHintIntl": "O WeChat Pay só liquida em yuan (CNY). Escreva-nos para pagar <b>{price}</b> com cartão ou PayPal; respondemos em até um dia útil e emitimos o código de ativação assim que o valor for confirmado.",
+    "contactCta": "Falar por e-mail para pagar",
+    "redeemTitle": "🎟️ Tenho um código de ativação",
+    "redeemPlaceholder": "Digite o código (ex.: YEAR-XXXX-XXXX)",
+    "redeemBtn": "Ativar assinatura",
+    "redeemHint": "Já pagou e recebeu o código? Ative aqui.",
+    "redeemOk": "🎉 Assinatura ativada!",
+    "redeemOkMsg": "A sua assinatura anual está ativa. As 30 consultas de IA por dia já estão liberadas.",
+    "redeemOkMsgExp": "A sua assinatura anual está ativa até {date}. As 30 consultas de IA por dia já estão liberadas.",
+    "redeemGo": "Ir para o Estúdio →",
+    "discTitle": "⚠️ Aviso importante",
+    "discBody": "<b>Todo o conteúdo desta página é uma leitura de entretenimento cultural da astrologia chinesa tradicional, gerado por IA. Não constitui aconselhamento médico, jurídico, financeiro ou de qualquer outra natureza profissional.</b> Para decisões de saúde, jurídicas ou financeiras, consulte um profissional habilitado na área. O Chen Lu é uma ferramenta de estudo e difusão cultural e não se responsabiliza por decisões tomadas com base no seu conteúdo.",
+    "refundTitle": "💎 Política de reembolso",
+    "refund1": "<b>Reembolso integral em 7 dias:</b> dentro de 7 dias após a ativação do código, escreva-nos para solicitar o reembolso integral caso a assinatura não atenda às suas expectativas (concedido quando o uso é nulo ou mínimo).",
+    "refund2": "<b>Não elegível:</b> quando as consultas de IA já foram intensamente utilizadas após a ativação (por exemplo, mais de 50% da franquia anual consumida) ou quando houver indícios de uso abusivo ou revenda do código. Ainda assim, podemos acordar um valor proporcional.",
+    "refund3": "<b>Como o reembolso é pago:</b> devolvido à conta de pagamento original; o prazo depende do canal (geralmente de 3 a 7 dias úteis). Em caso de divergência, prevalece o que ficar registrado na nossa comunicação por escrito.",
+    "refundNote": "Nota: os pagamentos usam atualmente um QR code de cobrança pessoal. Assim que o pagamento online formal e o reembolso automático entrarem no ar, o reembolso será feito no próprio produto, com um clique.",
+    "foot": "Todo o conteúdo é gerado por IA, apenas para entretenimento cultural, e não constitui aconselhamento profissional.",
+    "save": "Economize {amount}",
+    "renewTitle": "⏳ Assinatura a expirar",
+    "renewText": "A sua assinatura expira em <b>{days}</b>. Renove (plano anual ou código de ativação) para não interromper as consultas de IA nem o armazenamento dos mapas.",
+    "renewToday": "hoje",
+    "renewDays": "{n} dias",
+    "renewCta": "Renovar agora →",
+    "statusNeedCode": "Digite o seu código de ativação.",
+    "statusActivating": "Ativando…",
+    "statusOk": "Ativado.",
+    "statusNetwork": "Erro de rede: {msg}",
+    "errUsed": "Este código já foi utilizado.",
+    "errExpired": "Este código expirou.",
+    "errInvalid": "Este código não existe ou é inválido.",
+    "errNeedLogin": "Entre na sua conta antes de ativar um código.",
+    "errFail": "Algo deu errado. Tente novamente em instantes.",
+    "errFallback": "A ativação falhou. Verifique o código."
+  },
+  "report": {
+    "docTitle": "Mapa BaZi · {pillars}",
+    "titleMain": "Mapa BaZi",
+    "titleSub": "八字命盘 · Os Quatro Pilares do Destino",
+    "aiBadge": "Gerado por IA · apenas entretenimento cultural",
+    "meta": {
+      "birth": "Nascimento",
+      "gender": "Sexo",
+      "place": "Local de nascimento",
+      "trueSolar": "Hora solar verdadeira (corrigida)",
+      "lunar": "Data lunar",
+      "dayMaster": "Mestre do Dia",
+      "male": "Masculino",
+      "female": "Feminino",
+      "solarCal": "Solar",
+      "lunarCal": "Lunar"
+    },
+    "pillar": {
+      "year": "Ano",
+      "month": "Mês",
+      "day": "Dia",
+      "hour": "Hora",
+      "hidden": "Ocultos:"
+    },
+    "sec": {
+      "pillars": {
+        "h": "Os Quatro Pilares",
+        "s": "四柱"
+      },
+      "wuxing": {
+        "h": "Cinco Elementos",
+        "s": "五行分布"
+      },
+      "pattern": {
+        "h": "Padrão e Deus Útil",
+        "s": "格局与用神"
+      },
+      "dayun": {
+        "h": "Pilares de Sorte",
+        "s": "大运"
+      },
+      "liunian": {
+        "h": "Pilares Anuais",
+        "s": "流年"
+      },
+      "months": {
+        "h": "Pilares Mensais · Próximos",
+        "s": "近期流月"
+      },
+      "domains": {
+        "h": "Áreas da Vida",
+        "s": "分领域解读"
+      },
+      "summary": {
+        "h": "Em Três Linhas",
+        "s": "三句话总结"
+      }
+    },
+    "lbl": {
+      "current": "Atual",
+      "strongest": "Mais forte",
+      "weakest": "Mais fraca",
+      "missing": "Ausentes",
+      "none": "nenhum"
+    },
+    "kv": {
+      "strength": "Força do Mestre do Dia",
+      "pattern": "Padrão",
+      "tiaohou": "Deus útil sazonal",
+      "favor": "Favoráveis",
+      "avoid": "A evitar"
+    },
+    "tag": {
+      "xi": "Favorece {el}",
+      "ji": "Evita {el}"
+    },
+    "liunianLine": "Pilar anual {year} · {gz}",
+    "summary": {
+      "line1": "{name}, {verdict}. {advice}",
+      "dayun": "Atualmente no pilar de sorte <b>{gz}</b> ({from}–{to}): {headline}",
+      "liunian": "<b>{gz}</b> pilar anual: {headline}"
+    },
+    "tst": {
+      "appliedChanged": "Corrigido para a hora solar verdadeira pela longitude do local de nascimento: o pilar da hora passou de “{from}” para “{to}”. Isso altera a estrutura dos Dez Deuses e, com ela, toda a leitura.",
+      "appliedSame": "Correção para hora solar verdadeira aplicada (deslocamento de {minutes} minutos); o pilar da hora não mudou de faixa de duas horas.",
+      "notApplied": "A correção para hora solar verdadeira está desligada; o mapa é calculado diretamente com o horário informado."
+    },
+    "discBottom": "Este conteúdo é gerado por IA. A astrologia chinesa é uma referência, não um destino fechado; para decisões de saúde, jurídicas ou financeiras importantes, consulte o profissional competente.",
+    "god": {
+      "比肩": "Companheiro",
+      "劫财": "Ladrão de Riqueza",
+      "食神": "Deus da Nutrição",
+      "伤官": "Oficial Ferido",
+      "偏财": "Riqueza Indireta",
+      "正财": "Riqueza Direta",
+      "七杀": "Sete Assassinos",
+      "正官": "Oficial Direto",
+      "偏印": "Recurso Indireto",
+      "正印": "Recurso Direto",
+      "日主": "Mestre do Dia"
+    },
+    "el": {
+      "木": "Madeira",
+      "火": "Fogo",
+      "土": "Terra",
+      "金": "Metal",
+      "水": "Água"
+    },
+    "strength": {
+      "身旺": "Forte",
+      "偏旺": "Ligeiramente forte",
+      "中和": "Equilibrado",
+      "偏弱": "Ligeiramente fraco",
+      "身弱": "Fraco"
+    },
+    "verdict": {
+      "上吉": "Muito favorável",
+      "吉": "Favorável",
+      "平": "Neutro",
+      "需防": "Cautela",
+      "大防": "Muita cautela"
+    },
+    "nayin": {
+      "剑锋金": "Metal Fio de Espada",
+      "城头土": "Terra da Muralha",
+      "壁上土": "Terra da Parede",
+      "大林木": "Madeira da Grande Floresta",
+      "大海水": "Água do Oceano",
+      "大溪水": "Água do Grande Riacho",
+      "大驿土": "Terra da Grande Estrada",
+      "天上火": "Fogo Celeste",
+      "天河水": "Água do Rio Celeste",
+      "屋上土": "Terra do Telhado",
+      "山下火": "Fogo ao Pé da Montanha",
+      "山头火": "Fogo do Cume",
+      "平地木": "Madeira da Planície",
+      "杨柳木": "Madeira de Salgueiro",
+      "松柏木": "Pinheiro e Cipreste",
+      "桑柘木": "Madeira de Amoreira",
+      "沙中土": "Terra na Areia",
+      "沙中金": "Ouro na Areia",
+      "泉中水": "Água da Fonte",
+      "海中金": "Ouro no Mar",
+      "涧下水": "Água da Ravina",
+      "炉中火": "Fogo na Fornalha",
+      "白蜡金": "Metal Cera Branca",
+      "石榴木": "Madeira de Romãzeira",
+      "覆灯火": "Fogo da Lâmpada",
+      "路旁土": "Terra da Beira da Estrada",
+      "金箔金": "Metal Folha de Ouro",
+      "钗钏金": "Metal do Fivela",
+      "长流水": "Água Corrente Longa",
+      "霹雳火": "Fogo do Relâmpago"
+    },
+    "shen": {
+      "三合": "Tripla Combinação",
+      "亡神": "Espírito da Perda",
+      "伏吟": "Eco",
+      "元辰": "Choque Primordial",
+      "劫煞": "Estrela do Roubo",
+      "半合": "Meia Combinação",
+      "华盖": "Dossel",
+      "双冲": "Choque Duplo",
+      "吊客": "Visitante de Luto",
+      "国印": "Selo do Estado",
+      "天乙贵人": "Nobre Celeste",
+      "天医星": "Médico Celeste",
+      "天厨贵人": "Cozinha Celeste",
+      "天喜": "Alegria Celeste",
+      "天官贵人": "Cargo Celeste",
+      "天德合": "Harmonia da Virtude Celeste",
+      "天德贵人": "Virtude Celeste",
+      "天罗地网": "Rede do Céu e da Terra",
+      "太极贵人": "Nobre Taiji",
+      "孤辰": "Estrela da Solidão",
+      "学堂": "Academia",
+      "寡宿": "Estrela Solitária",
+      "将星": "Estrela do General",
+      "德秀贵人": "Virtude e Elegância",
+      "披头": "Cabelo Solto",
+      "披麻": "Tecido de Luto",
+      "文昌贵人": "Estrela Literária",
+      "暗合": "Combinação Oculta",
+      "月德合": "Harmonia da Virtude Lunar",
+      "月德贵人": "Virtude Lunar",
+      "桃花": "Flor de Pessegueiro",
+      "流霞": "Nuvem Erratica",
+      "灾煞": "Estrela da Calamidade",
+      "禄神": "Estrela da Prosperidade",
+      "福星贵人": "Estrela da Fortuna",
+      "空亡": "Vazio",
+      "童子煞": "Criança Divina",
+      "红艳": "Beleza Vermelha",
+      "羊刃": "Lâmina Yang",
+      "血刃": "Lâmina de Sangue",
+      "词馆": "Salão das Letras",
+      "金舆": "Carruagem Dourada",
+      "阴差阳错": "Descompasso Yin-Yang",
+      "飞刃": "Lâmina Voadora",
+      "驿马": "Cavalo Viajante"
+    }
+  },
+  "srv": {
+    "disclaimer": {
+      "L1": "O Chen Lu é uma ferramenta de estudo e difusão da cultura tradicional chinesa do destino. Todo o conteúdo é gerado automaticamente por IA a partir de teorias divulgadas publicamente, destina-se apenas a estudo cultural e entretenimento e não constitui aconselhamento profissional. Não nos responsabilizamos por decisões tomadas com base nele.",
+      "L2": "O texto acima é uma leitura de entretenimento da cultura tradicional chinesa do destino, gerada por IA. Não constitui aconselhamento médico, jurídico, financeiro ou de qualquer outra natureza profissional. Para decisões importantes de saúde, jurídicas ou financeiras, consulte um profissional habilitado.",
+      "L3": "Se estiver a atravessar uma crise emocional, procure um serviço de apoio psicológico local ou alguém de confiança perto de você.",
+      "L4": "Sinto muito — este assunto está fora do que o estudo do destino pode abordar com responsabilidade, e esse estudo é apenas entretenimento cultural, não um diagnóstico nem aconselhamento profissional. Se precisar de ajuda com isso, procure um profissional qualificado."
+    },
+    "refusal": {
+      "A": "O estudo do destino não substitui um diagnóstico médico. Para questões de saúde, procure um médico habilitado numa instituição de saúde.",
+      "B": "Para questões jurídicas, consulte um advogado habilitado ou um serviço jurídico; uma leitura de destino não serve como base legal.",
+      "C": "Não farei afirmações sobre a segurança física ou desgraças de ninguém. O estudo do destino é entretenimento cultural — encare com leveza e cuide-se.",
+      "D": "Qualquer cobrança para “mudar a sorte”, “afastar desgraças” ou “resolver” uma leitura é um sinal de alerta grave. Cuidado com fraudes.",
+      "E": "Investimentos envolvem risco e exigem cuidado. O estudo do destino não tem relação com finanças; procure orientação de uma instituição financeira habilitada.",
+      "F": "Não forneço conteúdo sexual, obsceno ou de qualquer forma proibido.",
+      "G": "Não faço cálculos nem comentários sobre figuras políticas, conjuntura política ou eleições.",
+      "H": "Não dou orientações práticas de incorporação, exorcismo, invocação ou superstições semelhantes. Aqui o estudo do destino é apenas cultural.",
+      "I": "Se está a passar por dificuldades emocionais, procure apoio profissional ou alguém de confiança. Você importa, e há apoio para você além desta leitura.",
+      "J": "O jogo é prejudicial — fique longe de qualquer tipo de aposta. O estudo do destino não tem relação com ganhar ou perder."
+    },
+    "chatSuffixL3": "\nSe estiver a atravessar uma crise emocional, procure um serviço de apoio psicológico local ou alguém de confiança perto de você.",
+    "wd": [
+      "domingo",
+      "segunda-feira",
+      "terça-feira",
+      "quarta-feira",
+      "quinta-feira",
+      "sexta-feira",
+      "sábado"
+    ],
+    "wdShort": [
+      "dom",
+      "seg",
+      "ter",
+      "qua",
+      "qui",
+      "sex",
+      "sáb"
+    ],
+    "rel": {
+      "财": "Riqueza",
+      "官杀": "Autoridade",
+      "印": "Recurso",
+      "食伤": "Produção",
+      "比劫": "Par"
+    },
+    "advice": {
+      "财": "Bom dia para correr atrás do que quer e fazer as coisas avançarem — mas gaste dentro do seu orçamento e pare enquanto está à frente.",
+      "官杀": "Mantenha a firmeza, siga as regras e ouça quem tem experiência. A pressão e as restrições estão altas; evite o confronto direto.",
+      "印": "Bom para estudar, consolidar e receber ajuda de pessoas mais velhas ou de documentos. Descanse e planeje em vez de correr.",
+      "食伤": "Bom para se expressar, criar, conversar e apresentar o seu trabalho. A inspiração está viva — transforme ideias em algo concreto.",
+      "比劫": "Relações e colaboração fluem bem, mas atenção à disputa pela mesma fatia; cuidado ao servir de aval para outros."
+    },
+    "generic": {
+      "yang": "Um dia yang favorece a iniciativa — bom para avançar e fazer a sua jogada.",
+      "yin": "Um dia yin favorece a quietude — bom para refletir e consolidar."
+    },
+    "hoursTip": {
+      "财": "Bom para buscar objetivos",
+      "印": "Bom para estudar, apoio",
+      "食伤": "Bom para expressão, ideias",
+      "比劫": "Bom para equipe, sintonia",
+      "官杀": "Cuidado, mantenha a firmeza"
+    },
+    "eleText": {
+      "木": "A energia da Madeira sobe: expanda e deixe as coisas crescerem.",
+      "火": "A energia do Fogo sobe: seja luminoso, aberto e visível.",
+      "土": "A energia da Terra é densa: seja estável e sustente a carga.",
+      "金": "A energia do Metal se contrai: seja decidido e claro.",
+      "水": "A energia da Água assenta: fique quieto e junte forças."
+    },
+    "adviceLines": {
+      "stem": "O tronco do dia é “{stem}”, um tronco {yinYang} de {element}.",
+      "polarity": "O dia pende para “{dyn}”: {tail}",
+      "polarityYang": "tome a iniciativa, bom para assuntos externos",
+      "polarityYin": "fique quieto e voltado para dentro, bom para pensar",
+      "element": "Equilíbrio dos elementos: {text}",
+      "term": "Nota sazonal: o termo solar “{term}” está próximo — siga a estação e o esforço rende o dobro.",
+      "tail": "Nota prática: sono regular, refeições medidas; o movimento nutre o yang, a quietude nutre o yin. Hoje especialmente."
+    },
+    "wmo": {
+      "0": "Céu limpo",
+      "1": "Predomínio de sol",
+      "2": "Parcialmente nublado",
+      "3": "Nublado",
+      "45": "Neblina",
+      "48": "Neblina com geada",
+      "51": "Garoa",
+      "53": "Chuva fraca",
+      "55": "Chuva moderada",
+      "56": "Garoa congelante",
+      "57": "Garoa congelante",
+      "61": "Chuva fraca",
+      "63": "Chuva moderada",
+      "65": "Chuva forte",
+      "71": "Neve fraca",
+      "73": "Neve moderada",
+      "75": "Neve forte",
+      "77": "Grãos de neve",
+      "80": "Pancadas de chuva",
+      "81": "Pancadas de chuva",
+      "82": "Pancadas fortes",
+      "85": "Pancadas de neve",
+      "86": "Pancadas fortes de neve",
+      "95": "Trovoada",
+      "99": "Trovoada com granizo",
+      "unknown": "Desconhecido"
+    },
+    "weatherFail": "Falha na consulta do clima",
+    "geoFail": "Falha na geocodificação",
+    "geoNotFound": "Cidade não encontrada: {city}"
+  },
+  "api": {
+    "needLoginForChart": "Entre na sua conta para abrir um mapa salvo.",
+    "missingMessage": "O conteúdo da mensagem é obrigatório.",
+    "paywallGuest": "Você já usou as 3 leituras gratuitas de hoje. Entre na conta para continuar 👇",
+    "paywallPaid": "A sua cota de IA de hoje terminou. Assine para ter 30 leituras por dia 👑",
+    "chartRateLimit": "Muitos mapas de visitante a partir desta rede. Tente novamente em cerca de {min} minutos ou entre na conta para mapas ilimitados.",
+    "sessionForbidden": "Você não tem acesso a esta conversa.",
+    "fallbackHeader": "### 🔍 As respostas de IA ao vivo estão temporariamente indisponíveis\n\nAbaixo estão as partes do seu mapa mais relevantes para a pergunta (geradas por **regras e recuperação de dados**, não por uma resposta de IA ao vivo):",
+    "fallbackPoint": "Pontos principais",
+    "fallbackDayun": "Pilar de sorte atual",
+    "fallbackLiunian": "Pilar anual deste ano",
+    "fallbackNoContent": "(Não há conteúdo estruturado do mapa disponível para consulta. Tente novamente em instantes ou refaça o mapa.)",
+    "fallbackNote": "Este conteúdo é gerado por **regras e recuperação de dados**, apenas para estudo cultural e entretenimento. Para uma leitura personalizada, toque em “Tentar de novo” ou pergunte mais tarde."
   }
 }
