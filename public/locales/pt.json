@@ -1,0 +1,53 @@
+{
+  "meta": { "title": "Chen Lu · Entrar · Salão dos Segredos Celestiais" },
+  "common": {
+    "brandName": "辰箓",
+    "brandSub": "Chen Lu · Salão dos Segredos Celestiais",
+    "sealLine": "SEGREDOS CELESTIAIS EM MOVIMENTO",
+    "dateLine": "— Leitura até o presente —",
+    "langLabel": "Idioma"
+  },
+  "footer": {
+    "membership": "Planos",
+    "privacy": "Política de Privacidade",
+    "disclaimer": "Conteúdo gerado por IA, apenas para entretenimento cultural; não é aconselhamento profissional."
+  },
+  "login": {
+    "valueTitle": "O que o Chen Lu pode fazer por você",
+    "value1Title": "Mapa BaZi",
+    "value1Desc": "Informe seus dados de nascimento para gerar o mapa completo dos Quatro Pilares, com ciclos maiores e anuais.",
+    "value2Title": "Leitura Profunda",
+    "value2Desc": "Interpretação por IA do seu Mestre do Dia, Cinco Elementos, Dez Deuses e tendências de vida.",
+    "value3Title": "Adivinhação por Oráculo",
+    "value3Desc": "Um verso oracular diário com o que fazer e evitar para orientar suas escolhas.",
+    "value4Title": "Sorte Diária",
+    "value4Desc": "Orientação diária personalizada que combina o almanaque chinês com o clima em tempo real.",
+    "tabLogin": "Entrar",
+    "tabReg": "Cadastrar",
+    "username": "Usuário",
+    "usernamePh": "Digite seu usuário",
+    "password": "Senha",
+    "passwordPh": "Digite sua senha",
+    "loginBtn": "Entrar",
+    "regUsernamePh": "Usado para entrar (letras ou números)",
+    "nickname": "Apelido",
+    "nicknamePh": "Nome de exibição, ex.: Oráculo do Céu",
+    "passwordHint": "Pelo menos 6 caracteres",
+    "regPasswordPh": "Defina uma senha",
+    "consent": "Li e concordo com a <a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">Política de Privacidade</a> e os <a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">Termos de Serviço</a>.",
+    "regBtn": "Cadastrar",
+    "notice": "Ao entrar, você reconhece que o conteúdo de metafísica é apenas para entretenimento cultural e não constitui aconselhamento profissional.",
+    "or": "ou",
+    "guest": "Experimentar sem cadastro →",
+    "guestHint": "Sem conta — explore o Estúdio agora (perguntas limitadas a 3 rodadas)."
+  },
+  "status": {
+    "needCreds": "Preencha usuário e senha",
+    "loggingIn": "Entrando…",
+    "registering": "Criando sua conta…",
+    "pwdShort": "A senha deve ter pelo menos 6 caracteres",
+    "consentNeeded": "Aceite primeiro a Política de Privacidade e os Termos de Serviço",
+    "requestFailed": "Falha na solicitação",
+    "networkError": "Erro de rede"
+  }
+}

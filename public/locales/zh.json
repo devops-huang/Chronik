@@ -1,0 +1,53 @@
+{
+  "meta": { "title": "辰箓 · 登录 · Hall of Heavenly Secrets" },
+  "common": {
+    "brandName": "辰箓",
+    "brandSub": "Chen Lu · Hall of Heavenly Secrets",
+    "sealLine": "天 机 流 转",
+    "dateLine": "— 推演至今 —",
+    "langLabel": "语言"
+  },
+  "footer": {
+    "membership": "结缘堂方案",
+    "privacy": "隐私政策",
+    "disclaimer": "本平台内容由 AI 生成，仅供娱乐参考，不构成任何专业建议"
+  },
+  "login": {
+    "valueTitle": "辰箓能为你做什么",
+    "value1Title": "八字排盘",
+    "value1Desc": "输入生辰，排出完整四柱命盘与大运流年",
+    "value2Title": "深度解读",
+    "value2Desc": "日主五行、十神格局与人生运势的 AI 解析",
+    "value3Title": "灵签占卜",
+    "value3Desc": "每日灵签与宜忌，指引当下抉择",
+    "value4Title": "每日运势",
+    "value4Desc": "结合万年历与天气的个性化每日提醒",
+    "tabLogin": "登录",
+    "tabReg": "注册",
+    "username": "用户名",
+    "usernamePh": "请输入用户名",
+    "password": "密码",
+    "passwordPh": "请输入密码",
+    "loginBtn": "登 录",
+    "regUsernamePh": "用于登录（建议字母/数字）",
+    "nickname": "昵称",
+    "nicknamePh": "展示名，如 天机子",
+    "passwordHint": "至少 6 位",
+    "regPasswordPh": "设置密码",
+    "consent": "我已阅读并同意 <a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">《隐私政策》</a> 与 <a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">《用户协议》</a>",
+    "regBtn": "注 册",
+    "notice": "登录即代表你已阅读并理解：命理仅供文化娱乐参考，不构成任何专业建议。",
+    "or": "或",
+    "guest": "免登录试用 →",
+    "guestHint": "无需注册，可直接体验推演阁（问答限 3 轮）"
+  },
+  "status": {
+    "needCreds": "请填写用户名与密码",
+    "loggingIn": "登录中…",
+    "registering": "注册中…",
+    "pwdShort": "密码至少 6 位",
+    "consentNeeded": "请先勾选同意《隐私政策》与《用户协议》",
+    "requestFailed": "请求失败",
+    "networkError": "网络异常"
+  }
+}

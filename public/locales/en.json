@@ -1,0 +1,53 @@
+{
+  "meta": { "title": "Chen Lu · Sign In · Hall of Heavenly Secrets" },
+  "common": {
+    "brandName": "辰箓",
+    "brandSub": "Chen Lu · Hall of Heavenly Secrets",
+    "sealLine": "HEAVENLY SECRETS IN MOTION",
+    "dateLine": "— Reading to the present —",
+    "langLabel": "Language"
+  },
+  "footer": {
+    "membership": "Membership",
+    "privacy": "Privacy Policy",
+    "disclaimer": "Content is AI-generated, for cultural entertainment only, and is not professional advice."
+  },
+  "login": {
+    "valueTitle": "What Chen Lu Can Do for You",
+    "value1Title": "BaZi Chart",
+    "value1Desc": "Enter your birth details to cast a full Four Pillars chart with major and annual cycles.",
+    "value2Title": "In-Depth Reading",
+    "value2Desc": "AI interpretation of your Day Master, Five Elements, Ten Gods and life trends.",
+    "value3Title": "Oracle Divination",
+    "value3Desc": "A daily oracle verse with do's and don'ts to guide your current choices.",
+    "value4Title": "Daily Fortune",
+    "value4Desc": "Personalized daily guidance blending the Chinese almanac with live weather.",
+    "tabLogin": "Sign In",
+    "tabReg": "Sign Up",
+    "username": "Username",
+    "usernamePh": "Enter your username",
+    "password": "Password",
+    "passwordPh": "Enter your password",
+    "loginBtn": "Sign In",
+    "regUsernamePh": "Used to sign in (letters or numbers)",
+    "nickname": "Nickname",
+    "nicknamePh": "Display name, e.g. Sky Oracle",
+    "passwordHint": "At least 6 characters",
+    "regPasswordPh": "Set a password",
+    "consent": "I have read and agree to the <a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a> and <a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">Terms of Service</a>.",
+    "regBtn": "Sign Up",
+    "notice": "By signing in you acknowledge that metaphysics content is for cultural entertainment only and does not constitute professional advice.",
+    "or": "or",
+    "guest": "Try without signing up →",
+    "guestHint": "No account needed — explore the Studio right away (Q&A limited to 3 rounds)."
+  },
+  "status": {
+    "needCreds": "Please enter your username and password",
+    "loggingIn": "Signing in…",
+    "registering": "Creating your account…",
+    "pwdShort": "Password must be at least 6 characters",
+    "consentNeeded": "Please agree to the Privacy Policy and Terms of Service first",
+    "requestFailed": "Request failed",
+    "networkError": "Network error"
+  }
+}

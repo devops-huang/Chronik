@@ -3,13 +3,27 @@
   const $ = (id) => document.getElementById(id);
   const withEl = (id, fn) => { const el = $(id); if (!el) { console.warn('[login] missing #' + id); return; } fn(el); };
   const status = (msg, cls) => { withEl('status', (e) => { e.className = cls || ''; e.textContent = msg || ''; }); };
+  const T = (k) => (window.i18n ? window.i18n.t(k) : k);
 
-  // ── 当前时间显示 ──
-  withEl('dateLine', (e) => {
-    const now = new Date();
-    const cnWeek = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][now.getDay()];
-    e.textContent = `丙午年 · ${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 · ${cnWeek}`;
-  });
+  // ── 当前时间显示（随语言本地化）──
+  function renderDate() {
+    withEl('dateLine', (e) => {
+      const now = new Date();
+      const lang = window.i18n ? window.i18n.lang() : 'zh';
+      const map = { zh: 'zh-CN', en: 'en-US', pt: 'pt-BR' };
+      const loc = map[lang] || 'en-US';
+      let dateStr;
+      try {
+        dateStr = new Intl.DateTimeFormat(loc, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(now);
+      } catch (err) {
+        dateStr = now.toISOString().slice(0, 10);
+      }
+      const ganZhi = { zh: '丙午年', en: 'Bing Wu Year (丙午)', pt: 'Ano Bing Wu (丙午)' }[lang] || '';
+      e.textContent = ganZhi ? `${ganZhi} · ${dateStr}` : dateStr;
+    });
+  }
+  renderDate();
+  document.addEventListener('langchange', renderDate);
 
   // ── 背景：星空粒子 + 流星 + 金光闪烁 ──
   const cv = $('bg'); if (!cv) return;
@@ -136,16 +150,16 @@
     try {
       const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.error || ('请求失败 ' + r.status));
+      if (!r.ok) throw new Error(d.error || (T('status.requestFailed') + ' ' + r.status));
       return d;
-    } catch (e) { throw new Error('网络异常：' + (e.message || '请稍后重试')); }
+    } catch (e) { throw new Error(T('status.networkError') + ': ' + (e.message || '')); }
   }
 
   withEl('btnLogin', (b) => { b.onclick = async () => {
     const username = (($('lUser') || {}).value || '').trim();
     const password = (($('lPwd') || {}).value || '').trim();
-    if (!username || !password) return status('请填写用户名与密码', 'err');
-    status('登录中…');
+    if (!username || !password) return status(T('status.needCreds'), 'err');
+    status(T('status.loggingIn'));
     try { await api('/api/auth/login', { username, password }); location.href = '/index.html'; }
     catch (e) { status(e.message, 'err'); }
   }; });
@@ -155,10 +169,10 @@
     const nickname  = (($('rNick') || {}).value || '').trim();
     const password  = (($('rPwd')  || {}).value || '').trim();
     const consent   = !!($('rConsent') || {}).checked;
-    if (!username || !password) return status('请填写用户名与密码', 'err');
-    if (password.length < 6) return status('密码至少 6 位', 'err');
-    if (!$('rConsent') || !consent) return status('请先勾选同意《隐私政策》与《用户协议》', 'err');
-    status('注册中…');
+    if (!username || !password) return status(T('status.needCreds'), 'err');
+    if (password.length < 6) return status(T('status.pwdShort'), 'err');
+    if (!$('rConsent') || !consent) return status(T('status.consentNeeded'), 'err');
+    status(T('status.registering'));
     try { await api('/api/auth/register', { username, password, nickname, consent: true }); location.href = '/index.html'; }
     catch (e) { status(e.message, 'err'); }
   }; });
