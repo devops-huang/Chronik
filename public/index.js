@@ -3,6 +3,29 @@
   const $ = (id) => document.getElementById(id);
   const withEl = (id, fn) => { const el = $(id); if (!el) { console.warn('[index] missing #' + id); return; } fn(el); };
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ── i18n 助手 ──
+  const T = (k, vars) => (window.i18n ? window.i18n.t(k, vars) : k);
+  const LANG = () => (window.i18n ? window.i18n.lang() : 'zh');
+  const LOCALE = () => ({ zh: 'zh-CN', pt: 'pt-BR', en: 'en' }[LANG()] || 'en');
+  // 月标签：中文用「YYYY年M月」，英/葡用 Intl 长月名
+  function monthLabel(y, m) {
+    if (LANG() === 'zh') return `${y}年${m}月`;
+    try {
+      return new Intl.DateTimeFormat(LOCALE(), { year: 'numeric', month: 'long' })
+        .format(new Date(y, m - 1, 1));
+    } catch (e) { return `${y}-${m}`; }
+  }
+  // 日历星期表头：中文用汉字，英/葡用 Intl 短名（避免 S/M/T 歧义）
+  function weekdayHeads() {
+    if (LANG() === 'zh') return ['日', '一', '二', '三', '四', '五', '六'];
+    const base = new Date(2024, 0, 7); // 2024-01-07 = 周日
+    const fmt = new Intl.DateTimeFormat(LOCALE(), { weekday: 'short' });
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base.getTime() + i * 864e5);
+      return fmt.format(d).slice(0, 2);
+    });
+  }
   // R3 · 业务埋点：单端点上报（静默失败，绝不阻断主流程）
   function trackEvent(action, payload) {
     try {
@@ -15,6 +38,7 @@
 
   let view = { y: 0, m: 0 }; // 当前查看的年月
   let wxChart = null;
+  let lastData = null; // 保存最近一次 /api/home 响应，供切换语言时重渲染
   const state = { pos: null }; // 当前定位（GPS/IP）
 
   // 今日靈籤（繁体签库，純前端隨機抽取）
@@ -109,21 +133,35 @@
       if (p && p.lat && p.lon) url += `?lat=${encodeURIComponent(p.lat)}&lon=${encodeURIComponent(p.lon)}`;
       const r = await fetch(url);
       const d = await (r.ok ? r.json() : null);
-      if (!d) { withEl('dash', (e) => { e.innerHTML = '<div class="loading">加载失败，请刷新</div>'; }); return; }
+      if (!d) { withEl('dash', (e) => { e.innerHTML = `<div class="loading">${esc(T('home.loadFailed'))}</div>`; }); return; }
       view = { y: Number(d.today.split('-')[0]), m: Number(d.today.split('-')[1]) };
       render(d);
       loadRecent();
       loadLiuyueCard(); // R6† · 常驻「本月流月吉凶」卡
     } catch (e) {
-      withEl('dash', (e) => { e.innerHTML = '<div class="loading">网络异常，请刷新</div>'; });
+      withEl('dash', (e) => { e.innerHTML = `<div class="loading">${esc(T('home.networkError'))}</div>`; });
     }
   }
 
   function render(d) {
-    withEl('heroDate', (e) => { e.textContent = `${d.monthLabel} · ${d.today} ${d.fortune.weekday} · 天机流转`; });
+    lastData = d;
+    withEl('heroDate', (e) => {
+      if (LANG() === 'zh') {
+        e.textContent = `${d.monthLabel} · ${d.today} ${d.fortune.weekday} · ${T('home.heroSuffix')}`;
+      } else {
+        let ds = d.today;
+        try {
+          ds = new Intl.DateTimeFormat(LOCALE(), {
+            year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
+          }).format(new Date(d.today + 'T00:00:00'));
+        } catch (err) {}
+        e.textContent = `${ds} · ${T('home.heroSuffix')}`;
+      }
+    });
     const f = d.fortune, w = d.weather;
-    const yi = (f.yi || []).join('、') || '—';
-    const ji = (f.ji || []).join('、') || '—';
+    const SEP = LANG() === 'zh' ? '、' : ', ';
+    const yi = (f.yi || []).join(SEP) || '—';
+    const ji = (f.ji || []).join(SEP) || '—';
     const wxIcon = weatherIcon(w?.code);
 
     // 5.3 四元個性化運勢：有命盤時展示四維度 + 推導依據；
@@ -145,26 +183,26 @@
                 <span class="pft-tier">${esc(p.tier)}</span>
               </div>
               <div class="pft-meta">
-                <span class="rel-tag">${esc(p.dayStar)}當值</span>
-                <div class="pft-sub">${esc(p.strength)} · 喜${esc((p.like || []).join('、'))} · 忌${esc((p.dislike || []).join('、'))}</div>
+                <span class="rel-tag">${esc(T('home.dayStarOn', { star: p.dayStar }))}</span>
+                <div class="pft-sub">${esc(p.strength)} · ${esc(T('home.likeDislike', { like: (p.like || []).join(SEP), dislike: (p.dislike || []).join(SEP) }))}</div>
               </div>
             </div>
             <div class="pft-dims">
-              ${dimRow('事業', p.items.career)}
-              ${dimRow('財', p.items.wealth)}
-              ${dimRow('感情', p.items.love)}
-              ${dimRow('健康', p.items.health)}
+              ${dimRow(T('home.dimCareer'), p.items.career)}
+              ${dimRow(T('home.dimWealth'), p.items.wealth)}
+              ${dimRow(T('home.dimLove'), p.items.love)}
+              ${dimRow(T('home.dimHealth'), p.items.health)}
             </div>
             <div class="pft-tips">
-              <div class="pft-tip"><b class="yi-c">宜</b><span>${esc(p.do.text)}</span></div>
-              <div class="pft-tip"><b class="ji-c">忌</b><span>${esc(p.avoid.text)}</span></div>
+              <div class="pft-tip"><b class="yi-c">${esc(T('home.yi'))}</b><span>${esc(p.do.text)}</span></div>
+              <div class="pft-tip"><b class="ji-c">${esc(T('home.ji'))}</b><span>${esc(p.avoid.text)}</span></div>
             </div>
-            <button class="pft-why-btn" id="btnWhy" aria-expanded="false">為什麼這麼算 ▾</button>
+            <button class="pft-why-btn" id="btnWhy" aria-expanded="false">${esc(T('home.whyClosed'))}</button>
             <div class="pft-why" id="whyBox" hidden>${esc(p.why.text)}</div>
             ` : `
-            <div><span class="rel-tag">${esc(f.fortune.relation)}日</span></div>
+            <div><span class="rel-tag">${esc(T('home.relationDay', { rel: f.fortune.relation }))}</span></div>
             <div class="fortune-head">${esc(f.fortune.headline)}</div>
-            <div class="pft-nonatal hint">補全出生日期並排盤後，即可解鎖專屬於你命盤的四維運勢</div>
+            <div class="pft-nonatal hint">${esc(T('home.natalHint'))}</div>
             `;
 
     withEl('dash', (container) => {
@@ -172,23 +210,23 @@
       container.innerHTML = `
         <div class="dash-core">
           <section class="card fortune-card fadeup">
-            <h3><span class="ic">☯</span>今日運勢</h3>
+            <h3><span class="ic">☯</span>${esc(T('home.cardFortune'))}</h3>
             <div class="fortune-big">
               <span class="gz">${esc(f.ganzhi)}</span>
               <span class="el">${esc(f.lunarText)}</span>
             </div>
             ${personalBlock}
             <div class="yi-ji">
-              <div class="col"><div class="lab yi">宜</div><div class="v">${esc(yi)}</div></div>
-              <div class="col"><div class="lab ji">忌</div><div class="v">${esc(ji)}</div></div>
+              <div class="col"><div class="lab yi">${esc(T('home.yi'))}</div><div class="v">${esc(yi)}</div></div>
+              <div class="col"><div class="lab ji">${esc(T('home.ji'))}</div><div class="v">${esc(ji)}</div></div>
             </div>
-            ${f.term ? `<div class="hint">時令：${esc(f.term)}</div>` : ''}
+            ${f.term ? `<div class="hint">${esc(T('home.term', { term: f.term }))}</div>` : ''}
           </section>
 
           <section class="card wx-card fadeup">
-            <h3><span class="ic">🌤️</span>天氣 <span class="wx-loc" id="wxLoc"></span></h3>
+            <h3><span class="ic">🌤️</span>${esc(T('home.cardWeather'))} <span class="wx-loc" id="wxLoc"></span></h3>
             <div class="wx-reloc">
-              <button id="btnRelocate">📍 重新定位</button>
+              <button id="btnRelocate">${esc(T('home.relocate'))}</button>
               <span id="wxLocStatus" class="hint"></span>
             </div>
             ${w && !w.error ? `
@@ -196,20 +234,20 @@
               <span class="wx-icon">${wxIcon}</span>
               <div class="wx-temp">${w.temp}°</div>
               <div class="wx-meta">
-                <div><b>${esc(w.condition)}</b>${w.high != null ? ` · 高 ${w.high}° / 低 ${w.low}°` : ''}</div>
-                <div>體感 ${w.feels}° · 濕度 ${w.humidity}% · 風 ${Math.round(w.wind)}m/s</div>
+                <div><b>${esc(w.condition)}</b>${w.high != null ? ` · ${esc(T('home.high'))} ${w.high}° / ${esc(T('home.low'))} ${w.low}°` : ''}</div>
+                <div>${esc(T('home.feels'))} ${w.feels}° · ${esc(T('home.humidity'))} ${w.humidity}% · ${esc(T('home.wind'))} ${Math.round(w.wind)}m/s</div>
               </div>
             </div>
             <div id="wxChart"></div>
-            ` : `<div class="loading">${esc(w?.error || '天氣暫不可用')}</div>`}
+            ` : `<div class="loading">${esc(w?.error || T('home.weatherUnavailable'))}</div>`}
           </section>
         </div>
 
         <div class="dash-mid">
           <section class="card cal-card fadeup">
-            <h3><span class="ic">📅</span>萬年曆 · ${esc(d.monthLabel)}</h3>
+            <h3><span class="ic">📅</span>${esc(T('home.cardCalendar'))} · ${esc(monthLabel(view.y, view.m))}</h3>
             <div class="cal-head">
-              <span class="ml">${esc(d.monthLabel)}</span>
+              <span class="ml">${esc(monthLabel(view.y, view.m))}</span>
               <span><button id="calPrev">‹</button> <button id="calNext">›</button></span>
             </div>
             <div class="cal-grid" id="calGrid"></div>
@@ -217,7 +255,7 @@
           </section>
 
           <section class="card advice-card fadeup">
-            <h3><span class="ic">🪞</span>陰陽調和建議</h3>
+            <h3><span class="ic">🪞</span>${esc(T('home.cardAdvice'))}</h3>
             <ul class="advice">${(f.advice || []).map((a) => `<li>${esc(a)}</li>`).join('')}</ul>
             <div class="advice-art" aria-hidden="true">
               <svg viewBox="0 0 600 220" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
@@ -306,36 +344,36 @@
 
         <div class="dash-row3">
           <section class="card hours-card fadeup">
-            <h3><span class="ic">⏳</span>十二時辰</h3>
+            <h3><span class="ic">⏳</span>${esc(T('home.cardHours'))}</h3>
             <div class="hours-grid" id="hoursGrid"></div>
             <div class="hour-legend">
-              <span><i style="background:var(--jade)"></i>吉</span>
-              <span><i style="background:var(--gold)"></i>平</span>
-              <span><i style="background:var(--red)"></i>凶</span>
+              <span><i style="background:var(--jade)"></i>${esc(T('home.auspicious'))}</span>
+              <span><i style="background:var(--gold)"></i>${esc(T('home.neutral'))}</span>
+              <span><i style="background:var(--red)"></i>${esc(T('home.inauspicious'))}</span>
             </div>
           </section>
 
           <section class="card omen-card fadeup">
-            <h3><span class="ic">🎴</span>今日靈籤</h3>
+            <h3><span class="ic">🎴</span>${esc(T('home.cardOmen'))}</h3>
             <div class="omen-box" id="omenBox">
-              <div class="omen-title">心誠則靈，點下方求籤</div>
+              <div class="omen-title">${esc(T('home.omenPrompt'))}</div>
             </div>
-            <div class="omen-actions"><button id="btnDraw">求　籤</button></div>
+            <div class="omen-actions"><button id="btnDraw">${esc(T('home.drawOmen'))}</button></div>
           </section>
         </div>
 
         <div class="dash-foot">
           <section class="card cta-card fadeup">
-            <h3><span class="ic">🧭</span>開始推演</h3>
+            <h3><span class="ic">🧭</span>${esc(T('home.cardStart'))}</h3>
             <div class="cta">
-              <a href="/studio.html">進入排盤工作室 →</a>
-              <a href="/studio.html#quick">快速排出我的命盤 →</a>
+              <a href="/studio.html">${esc(T('home.ctaStudio'))}</a>
+              <a href="/studio.html#quick">${esc(T('home.ctaQuick'))}</a>
             </div>
           </section>
 
           <section class="card recent-card fadeup">
-            <h3><span class="ic">📜</span>最近命盤</h3>
-            <div id="recentWrap"><div class="loading">載入中…</div></div>
+            <h3><span class="ic">📜</span>${esc(T('home.cardRecent'))}</h3>
+            <div id="recentWrap"><div class="loading">${esc(T('home.loading'))}</div></div>
           </section>
         </div>`;
     });
@@ -352,7 +390,7 @@
         const open = box.hidden;
         box.hidden = !open;
         btn.setAttribute('aria-expanded', String(open));
-        btn.textContent = open ? '為什麼這麼算 ▴' : '為什麼這麼算 ▾';
+        btn.textContent = open ? T('home.whyOpen') : T('home.whyClosed');
         if (open) fetch('/api/fortune/expand', { method: 'POST' }).catch(() => {});
       };
     });
@@ -371,47 +409,58 @@
   function renderHours(hours) {
     withEl('hoursGrid', (g) => {
       if (!Array.isArray(hours)) return;
-      g.innerHTML = hours.map((h) => `
-        <div class="hour-cell lv${h.level}" title="${esc(h.branch)}時 · ${esc(h.tip)}">
+      g.innerHTML = hours.map((h) => {
+        const ht = LANG() === 'zh' ? `${h.branch}時 · ${h.tip}` : `${h.branch} · ${h.tip}`;
+        return `
+        <div class="hour-cell lv${h.level}" title="${esc(ht)}">
           <div class="hb">${esc(h.branch)}</div>
           <div class="hr">${esc(h.range)}</div>
           <span class="dot"></span>
           <div class="tip">${esc(h.tip)}</div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     });
   }
 
   // 今日靈籤：隨機抽一籤
+  // 籤文（詩句）保留中文原文作為文化载体；級別與解語按當前語言本地化。
+  const OMEN_LEVEL_KEY = [
+    'home.omenLevel1', 'home.omenLevel2', 'home.omenLevel2', 'home.omenLevel2',
+    'home.omenLevel3', 'home.omenLevel3', 'home.omenLevel3', 'home.omenLevel3', 'home.omenLevel3',
+    'home.omenLevel4', 'home.omenLevel4', 'home.omenLevel4',
+  ];
+
   function drawOmen() {
-    const o = OMENS[Math.floor(Math.random() * OMENS.length)];
+    const idx = Math.floor(Math.random() * OMENS.length);
+    const o = OMENS[idx];
     withEl('omenBox', (box) => {
       if (!box) return;
       box.innerHTML = `
-        <div class="omen-level lv${o.lv}">${esc(o.levelText)}</div>
+        <div class="omen-level lv${o.lv}">${esc(T(OMEN_LEVEL_KEY[idx]))}</div>
         <div class="omen-title">${esc(o.title)}</div>
         <div class="omen-poem">${o.poem.map((l) => esc(l)).join('<br>')}</div>
-        <div class="omen-desc">${esc(o.desc)}</div>`;
+        <div class="omen-desc">${esc(T('home.omen' + (idx + 1)))}</div>`;
     });
   }
 
   function updateLocUI(pos, w) {
     withEl('wxLoc', (e) => { e.textContent = '· ' + (w?.city || pos?.city || '—'); });
     withEl('wxLocStatus', (e) => {
-      if (!pos) e.textContent = '默认城市（允许定位可获精准天气）';
-      else if (pos.src === 'gps') e.textContent = '已通过定位获取';
-      else if (pos.src === 'ip') e.textContent = '通过 IP 大致定位';
+      if (!pos) e.textContent = T('home.locDefault');
+      else if (pos.src === 'gps') e.textContent = T('home.locGps');
+      else if (pos.src === 'ip') e.textContent = T('home.locIp');
     });
   }
 
   async function doRelocate() {
-    withEl('wxLocStatus', (e) => { e.textContent = '定位中…'; });
+    withEl('wxLocStatus', (e) => { e.textContent = T('home.locating'); });
     state.pos = await resolvePosition(true);
     await reload();
   }
 
   function renderCalendar(grid, today) {
     withEl('calGrid', (g) => {
-      const wd = ['日', '一', '二', '三', '四', '五', '六'];
+      const wd = weekdayHeads();
       g.innerHTML = wd.map((x) => `<div class="wd">${x}</div>`).join('')
         + grid.map((c) => `<div class="cal-cell ${c.inMonth ? '' : 'out'} ${c.isToday ? 'today' : ''}" data-ymd="${c.ymd}">
           <div class="d">${Number(c.ymd.split('-')[2])}</div>
@@ -429,8 +478,17 @@
   function showDay(ymd, c) {
     if (!c) return;
     withEl('dayDetail', (e) => {
-      e.innerHTML = `<b>${ymd}</b> · 农历 ${esc(c.lunarText)} · 日干支 <b>${esc(c.ganzhi)}</b>（${esc(c.weekday)}）`
-        + (c.isToday ? ' · <span style="color:var(--gold-bright)">今日</span>' : '');
+      let wd = esc(c.weekday || '');
+      if (LANG() !== 'zh') {
+        try {
+          wd = new Intl.DateTimeFormat(LOCALE(), { weekday: 'long' })
+            .format(new Date(ymd + 'T00:00:00'));
+        } catch (err) {}
+      }
+      const sep = ' · ';
+      e.innerHTML = `<b>${ymd}</b>${sep}${esc(T('home.lunar'))} ${esc(c.lunarText)}`
+        + `${sep}${esc(T('home.dayGanzhi'))} <b>${esc(c.ganzhi)}</b> (${wd})`
+        + (c.isToday ? `${sep}<span style="color:var(--gold-bright)">${esc(T('home.today'))}</span>` : '');
     });
   }
 
@@ -442,10 +500,10 @@
       const g = await fetch(`/api/calendar?y=${y}&m=${m}`).then((x) => x.ok ? x.json() : null);
       if (!g) return;
       withEl('dash', (container) => {
-        const ml = container.querySelector('.ml'); if (ml) ml.textContent = `${y}年${m}月`;
+        const ml = container.querySelector('.ml'); if (ml) ml.textContent = monthLabel(y, m);
       });
       renderCalendar(g.grid, g.today);
-      withEl('heroDate', (e) => { e.textContent = `${y}年${m}月 · 天机流转`; });
+      withEl('heroDate', (e) => { e.textContent = `${monthLabel(y, m)} · ${T('home.heroSuffix')}`; });
     } catch (e) {}
   }
 
@@ -454,11 +512,11 @@
       const r = await fetch('/api/charts');
       const data = await (r.ok ? r.json() : null);
       withEl('recentWrap', (wrap) => {
-        if (!data || !data.charts || !data.charts.length) { wrap.innerHTML = '<div class="hint">你还没有排过命盘，点上方按钮开始第一次推演。</div>'; return; }
-        wrap.innerHTML = `<div class="hint" style="margin-bottom:8px">最近命盘（点击载入工作室）</div>
+        if (!data || !data.charts || !data.charts.length) { wrap.innerHTML = `<div class="hint">${esc(T('home.recentNone'))}</div>`; return; }
+        wrap.innerHTML = `<div class="hint" style="margin-bottom:8px">${esc(T('home.recentHint'))}</div>
           <div class="recent">${data.charts.map((c) => `<div class="item" data-id="${c.id}">
             <div class="p">${(c.pillars || []).join(' ')}</div>
-            <div class="t">${new Date(c.created_at).toLocaleString('zh-CN')}</div></div>`).join('')}</div>`;
+            <div class="t">${new Date(c.created_at).toLocaleString(LOCALE())}</div></div>`).join('')}</div>`;
         wrap.querySelectorAll('.item').forEach((el) => {
           el.onclick = () => { location.href = `/studio.html?load=${el.dataset.id}`; };
         });
@@ -484,14 +542,14 @@
       const vc = { good: 'v-good', mid: 'v-mid', warn: 'v-warn' }[cur.verdict?.cls] || 'v-mid';
       box.innerHTML = `
         <section class="card liuyue-card fadeup">
-          <h3><span class="ic">🌙</span>本月流月 · ${esc(cur.ganzhi)}</h3>
+          <h3><span class="ic">🌙</span>${esc(T('home.cardLiuyue'))} · ${esc(cur.ganzhi)}</h3>
           <div class="ly-row">
-            <span class="ly-verdict ${vc}">${esc(cur.verdict?.label || '平')}</span>
+            <span class="ly-verdict ${vc}">${esc(cur.verdict?.label || T('home.neutral'))}</span>
             <span class="ly-desc">${esc(cur.verdict?.desc || '')}</span>
           </div>
           <div class="ly-hl">${esc(cur.headline || '')}</div>
-          <div class="ly-rng">${esc(cur.start || '')} ~ ${esc(cur.end || '')}　·　<a href="/nianli.html">查看全年流月 →</a></div>
-          <div class="ly-dis">AI 生成 · 仅供娱乐参考</div>
+          <div class="ly-rng">${esc(cur.start || '')} ~ ${esc(cur.end || '')}　·　<a href="/nianli.html">${esc(T('home.viewYear'))}</a></div>
+          <div class="ly-dis">${esc(T('home.aiDisclaimer'))}</div>
         </section>`;
     } catch (e) {}
   }
@@ -640,6 +698,14 @@
     window.addEventListener('resize', resize);
     requestAnimationFrame(frame);
   }
+
+  // ── 语言切换：UI 标签需按新语言重绘（服务端内容不变） ──
+  document.addEventListener('langchange', () => {
+    if (!lastData) return;
+    render(lastData);
+    loadRecent();
+    loadLiuyueCard();
+  });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
   else load();
