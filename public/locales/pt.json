@@ -8,7 +8,8 @@
     "brandSub": "Chen Lu · Salão dos Segredos Celestiais",
     "sealLine": "SEGREDOS CELESTIAIS EM MOVIMENTO",
     "dateLine": "— Leitura até o presente —",
-    "langLabel": "Idioma"
+    "langLabel": "Idioma",
+    "loading": "Carregando…"
   },
   "footer": {
     "membership": "Planos",
@@ -128,5 +129,39 @@
     "omen10": "Um barco solitário na chuva noturna. Pense três vezes e vá com cuidado; forçar atrai duplo infortúnio.",
     "omen11": "Lótus seco, chuva, sonhos inacabados. Não busque atalhos; mantenha a firmeza e preserve sua paz.",
     "omen12": "Geada pesada, relva murcha. Recolha o fio da lâmina, siga discreto e volte a subir quando a primavera retornar."
+  },
+  "r": {
+    "title": "Seu mapa ainda está aqui",
+    "subNormal": "Faz tempo — suas leituras foram guardadas para você.<br>Entre para ver como seu ciclo anual e seu palácio da vida mudaram.",
+    "subRenewal": "Faz tempo — suas leituras foram guardadas para você.<br>Renove sua assinatura aqui para manter a orientação por IA e os mapas na nuvem.",
+    "summaryNormal": "Seu mapa ainda está aqui — entre para ver seu ciclo anual e palácio da vida",
+    "summaryRenewal": "Seu mapa ainda está aqui · sua entrada de renovação está pronta",
+    "btnFlow": "Ver meu ciclo anual / palácio da vida",
+    "btnRenew": "Renovar na Assinatura →",
+    "btnAsk": "Continuar a orientação por IA",
+    "btnFlowGhost": "Ver meu ciclo primeiro",
+    "disclaimer": "O conteúdo acima é uma leitura de entretenimento da cultura tradicional do destino, gerada por IA. Não constitui aconselhamento médico, jurídico, financeiro ou de qualquer outra natureza profissional."
+  },
+  "notif": {
+    "title": "Configurações de lembrete",
+    "sub": "Escolha quais lembretes de ritmo deseja receber. Todos os lembretes são por ritmo ou evento — não vamos incomodá-lo diariamente.",
+    "note": "🌿 Nota: todos os lembretes abaixo são acionados automaticamente por marcos de ritmo, como termos solares, ciclos anuais e palácios da vida. <b>Não há envios diários</b> — você recebe uma mensagem no aplicativo apenas quando um marco se aproxima.",
+    "solarTermLabel": "Lembretes de termos solares",
+    "solarTermDesc": "Quando um termo solar como a Descida da Geada ou o Início da Primavera se aproxima, lembramos você da mudança de energia e do novo ritmo.",
+    "liunianLabel": "Ciclo anual e palácio da vida",
+    "liunianDesc": "Quando um novo ano lunar começa ou o pilar anual muda, lembramos como seu palácio da vida e sua fortuna estão evoluindo.",
+    "destinyLabel": "Ano do signo e conflitos com Tai Sui",
+    "destinyDesc": "Em pontos de destino como seu ano zodiacal ou um conflito com Tai Sui, lembramos o que favorecer e o que evitar.",
+    "birthdayLabel": "Surpresa de aniversário",
+    "birthdayDesc": "No seu aniversário enviamos um pequeno deleite da cultura do destino e uma nota sobre o seu ano.",
+    "emailLabel": "Lembretes por e-mail",
+    "emailDesc": "O canal de e-mail ainda não está disponível",
+    "emailTag": "Ainda indisponível",
+    "save": "Salvar configurações",
+    "saving": "Salvando…",
+    "saved": "✅ Salvo",
+    "saveFailed": "Falha ao salvar",
+    "netError": "Erro de rede",
+    "loginPrompt": "Faça <a href=\"/login.html\">login</a> para definir suas preferências de lembrete.<br>Após entrar, você pode gerenciar seus lembretes de termos solares, ciclo anual e palácio da vida."
   }
 }

@@ -51,19 +51,22 @@
     return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'ref=' + encodeURIComponent(ref) + hash;
   }
 
-  /** 分流文案表：key = 分流场景。文案一律中性，禁恐惧诉求。 */
+  /** 分流文案表：key = 分流场景。文案一律中性，禁恐惧诉求。
+   *  文案本体走 i18n 词库（r.*），此处只保留场景与跳转目标。 */
+  const T = (k) => (window.i18n ? window.i18n.t(k) : k);
+
   const SCENES = {
     renewal: {
-      sub: '许久未见，你的命理推演记录一直为你保留。<br>结缘堂权益可在此续费，续费后 AI 答疑与命盘云保存继续可用。',
-      summary: '你的命盘仍在 · 结缘堂续费入口已为你备好',
-      primary: { text: '去结缘堂续费 →', href: '/pricing.html#redeem', target: 'renewal' },
-      ghost: { text: '先看看我的流年 / 命宫变化', href: '/studio.html', target: 'flow' },
+      subKey: 'r.subRenewal',
+      summaryKey: 'r.summaryRenewal',
+      primary: { textKey: 'r.btnRenew', href: '/pricing.html#redeem', target: 'renewal' },
+      ghost: { textKey: 'r.btnFlowGhost', href: '/studio.html', target: 'flow' },
     },
     normal: {
-      sub: '许久未见，你的命理推演记录一直为你保留。<br>登录即可查看流年与命宫的最新变化。',
-      summary: '你的命盘仍在 —— 登录查看流年 / 命宫变化',
-      primary: { text: '查看我的流年 / 命宫变化', href: '/studio.html', target: 'flow' },
-      ghost: { text: '继续 AI 答疑', href: '/studio.html', target: 'ask' },
+      subKey: 'r.subNormal',
+      summaryKey: 'r.summaryNormal',
+      primary: { textKey: 'r.btnFlow', href: '/studio.html', target: 'flow' },
+      ghost: { textKey: 'r.btnAsk', href: '/studio.html', target: 'ask' },
     },
   };
 
@@ -79,17 +82,17 @@
   }
 
   function applyScene() {
-    setHtml('rSubText', scene.sub);
-    setText('rSummaryText', scene.summary);
+    setHtml('rSubText', T(scene.subKey));
+    setText('rSummaryText', T(scene.summaryKey));
 
     const primary = document.getElementById('btnFlow');
     if (primary) {
-      primary.textContent = scene.primary.text;
+      primary.textContent = T(scene.primary.textKey);
       primary.setAttribute('href', withRef(scene.primary.href));
     }
     const ghost = document.getElementById('btnAsk');
     if (ghost) {
-      ghost.textContent = scene.ghost.text;
+      ghost.textContent = T(scene.ghost.textKey);
       ghost.setAttribute('href', withRef(scene.ghost.href));
     }
   }
@@ -104,6 +107,8 @@
   }
 
   applyScene();
+  // 语言切换后重刷场景文案（href 与埋点绑定不受影响）
+  document.addEventListener('langchange', applyScene);
 
   // 载入即上报 recall_open
   track('recall_open', { ref, ua_fallback: true });

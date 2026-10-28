@@ -9,30 +9,33 @@
   const $ = (id) => document.getElementById(id);
   const withEl = (id, fn) => { const el = $(id); if (!el) { console.warn('[settings-notif] missing #' + id); return; } fn(el); };
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const T = (k) => (window.i18n ? window.i18n.t(k) : k);
 
-  // 开关定义：key 对应后端 notification_settings 字段
+  // 开关定义：key 对应后端 notification_settings 字段；文案走 i18n 词库
   const SWITCHES = [
-    { key: 'solar_term', label: '节气转换提醒', desc: '霜降、立春等节气临近时，提醒你气场流转与新节律。' },
-    { key: 'liunian', label: '年度流年命宫提醒', desc: '进入新农历年 / 流年干支更替时，提醒你命宫与运势走向变化。' },
-    { key: 'destiny_node', label: '本命年冲太岁提醒', desc: '命中本命年、冲太岁等运势节点时，提醒你趋避与调养。' },
-    { key: 'birthday', label: '生日彩蛋提醒', desc: '生日当天送上命理文化彩蛋与流年小语。' },
+    { key: 'solar_term', labelKey: 'notif.solarTermLabel', descKey: 'notif.solarTermDesc' },
+    { key: 'liunian', labelKey: 'notif.liunianLabel', descKey: 'notif.liunianDesc' },
+    { key: 'destiny_node', labelKey: 'notif.destinyLabel', descKey: 'notif.destinyDesc' },
+    { key: 'birthday', labelKey: 'notif.birthdayLabel', descKey: 'notif.birthdayDesc' },
   ];
 
   let loadedSettings = { solar_term: true, liunian: true, destiny_node: true, birthday: true, email: false };
+  let lastMode = 'page'; // 'page' | 'prompt'，供切换语言时按当前视图重渲染
 
   function renderPage() {
     const body = $('pageBody');
     if (!body) return;
+    lastMode = 'page';
     body.innerHTML = `
       <section class="settings-card fadeup">
-        <h2>提醒设置</h2>
-        <p class="settings-sub">选择你希望接收的节律提醒。所有提醒均为节律 / 事件驱动，不会每日打扰。</p>
-        <div class="rhythm-note">🌿 说明：以上提醒均基于节气、流年、命宫等节律节点自动触发，<b>无每日推送</b>，仅在相关节点临近时发送一次站内信。</div>
+        <h2>${esc(T('notif.title'))}</h2>
+        <p class="settings-sub">${esc(T('notif.sub'))}</p>
+        <div class="rhythm-note">${T('notif.note')}</div>
         ${SWITCHES.map((s) => `
           <label class="switch-row">
             <span class="switch-text">
-              <span class="switch-label">${esc(s.label)}</span>
-              <span class="switch-desc">${esc(s.desc)}</span>
+              <span class="switch-label">${esc(T(s.labelKey))}</span>
+              <span class="switch-desc">${esc(T(s.descKey))}</span>
             </span>
             <span class="switch">
               <input type="checkbox" id="sw_${s.key}" ${loadedSettings[s.key] ? 'checked' : ''}>
@@ -41,8 +44,8 @@
           </label>`).join('')}
         <div class="email-row">
           <span class="switch-text">
-            <span class="switch-label">邮件提醒</span>
-            <span class="switch-desc">邮件渠道暂未开通<span class="tag">暂未开通</span></span>
+            <span class="switch-label">${esc(T('notif.emailLabel'))}</span>
+            <span class="switch-desc">${esc(T('notif.emailDesc'))}<span class="tag">${esc(T('notif.emailTag'))}</span></span>
           </span>
           <span class="switch">
             <input type="checkbox" id="sw_email" disabled ${loadedSettings.email ? 'checked' : ''}>
@@ -50,7 +53,7 @@
           </span>
         </div>
         <div class="save-bar">
-          <button class="primary" id="btnSave">保存设置</button>
+          <button class="primary" id="btnSave">${esc(T('notif.save'))}</button>
           <span class="status info" id="status"></span>
         </div>
       </section>`;
@@ -60,12 +63,12 @@
   function renderLoginPrompt() {
     const body = $('pageBody');
     if (!body) return;
+    lastMode = 'prompt';
     body.innerHTML = `
       <section class="settings-card fadeup">
-        <h2>提醒设置</h2>
+        <h2>${esc(T('notif.title'))}</h2>
         <div class="login-prompt">
-          请先<a href="/login.html">登录</a>后设置提醒偏好。<br>
-          登录后即可管理你的节气、流年、命宫等节律提醒。
+          ${T('notif.loginPrompt')}
         </div>
       </section>`;
   }
@@ -98,7 +101,7 @@
     };
     const btn = $('btnSave');
     if (btn) btn.disabled = true;
-    if (status) { status.textContent = '保存中…'; status.className = 'status info'; }
+    if (status) { status.textContent = T('notif.saving'); status.className = 'status info'; }
     try {
       const r = await fetch('/api/notifications/settings', {
         method: 'PUT',
@@ -108,14 +111,14 @@
       const d = await r.json().catch(() => ({}));
       if (r.ok && d.ok) {
         loadedSettings = Object.assign(loadedSettings, payload.settings, d.settings || {});
-        if (status) { status.textContent = '✅ 已保存'; status.className = 'status ok'; }
+        if (status) { status.textContent = T('notif.saved'); status.className = 'status ok'; }
       } else if (r.status === 401) {
         renderLoginPrompt();
       } else {
-        if (status) { status.textContent = '⚠️ ' + (d.error || '保存失败'); status.className = 'status err'; }
+        if (status) { status.textContent = '⚠️ ' + (d.error || T('notif.saveFailed')); status.className = 'status err'; }
       }
     } catch (e) {
-      if (status) { status.textContent = '⚠️ 网络错误：' + (e.message || ''); status.className = 'status err'; }
+      if (status) { status.textContent = '⚠️ ' + T('notif.netError') + '：' + (e.message || ''); status.className = 'status err'; }
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -140,6 +143,19 @@
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
     location.href = '/login.html';
   }; });
+
+  // ── 语言切换：保留用户已勾选但未保存的开关状态，再按当前视图重渲染 ──
+  document.addEventListener('langchange', () => {
+    if (lastMode === 'page') {
+      SWITCHES.forEach((s) => {
+        const el = $('sw_' + s.key);
+        if (el) loadedSettings[s.key] = el.checked;
+      });
+      renderPage();
+    } else {
+      renderLoginPrompt();
+    }
+  });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadSettings);
   else loadSettings();

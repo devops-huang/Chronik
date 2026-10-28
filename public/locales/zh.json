@@ -8,7 +8,8 @@
     "brandSub": "Chen Lu · Hall of Heavenly Secrets",
     "sealLine": "天 机 流 转",
     "dateLine": "— 推演至今 —",
-    "langLabel": "语言"
+    "langLabel": "语言",
+    "loading": "加载中…"
   },
   "footer": {
     "membership": "结缘堂方案",
@@ -128,5 +129,39 @@
     "omen10": "時運偏低，宜守不宜進，諸事謹慎、忌強求。",
     "omen11": "不宜冒進投機，安分守己可保安寧。",
     "omen12": "收斂鋒芒、低調潛行，待時運回轉再圖大舉。"
+  },
+  "r": {
+    "title": "你的命盘仍在",
+    "subNormal": "许久未见，你的命理推演记录一直为你保留。<br>登录即可查看流年与命宫的最新变化。",
+    "subRenewal": "许久未见，你的命理推演记录一直为你保留。<br>结缘堂权益可在此续费，续费后 AI 答疑与命盘云保存继续可用。",
+    "summaryNormal": "你的命盘仍在 —— 登录查看流年 / 命宫变化",
+    "summaryRenewal": "你的命盘仍在 · 结缘堂续费入口已为你备好",
+    "btnFlow": "查看我的流年 / 命宫变化",
+    "btnRenew": "去结缘堂续费 →",
+    "btnAsk": "继续 AI 答疑",
+    "btnFlowGhost": "先看看我的流年 / 命宫变化",
+    "disclaimer": "以上内容为传统命理文化的娱乐性解读，由 AI 生成，不构成医疗、法律、投资或任何专业建议。"
+  },
+  "notif": {
+    "title": "提醒设置",
+    "sub": "选择你希望接收的节律提醒。所有提醒均为节律 / 事件驱动，不会每日打扰。",
+    "note": "🌿 说明：以上提醒均基于节气、流年、命宫等节律节点自动触发，<b>无每日推送</b>，仅在相关节点临近时发送一次站内信。",
+    "solarTermLabel": "节气转换提醒",
+    "solarTermDesc": "霜降、立春等节气临近时，提醒你气场流转与新节律。",
+    "liunianLabel": "年度流年命宫提醒",
+    "liunianDesc": "进入新农历年 / 流年干支更替时，提醒你命宫与运势走向变化。",
+    "destinyLabel": "本命年冲太岁提醒",
+    "destinyDesc": "命中本命年、冲太岁等运势节点时，提醒你趋避与调养。",
+    "birthdayLabel": "生日彩蛋提醒",
+    "birthdayDesc": "生日当天送上命理文化彩蛋与流年小语。",
+    "emailLabel": "邮件提醒",
+    "emailDesc": "邮件渠道暂未开通",
+    "emailTag": "暂未开通",
+    "save": "保存设置",
+    "saving": "保存中…",
+    "saved": "✅ 已保存",
+    "saveFailed": "保存失败",
+    "netError": "网络错误",
+    "loginPrompt": "请先<a href=\"/login.html\">登录</a>后设置提醒偏好。<br>登录后即可管理你的节气、流年、命宫等节律提醒。"
   }
 }
